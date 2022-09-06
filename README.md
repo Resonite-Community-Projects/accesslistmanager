@@ -12,6 +12,8 @@ pip install -r requirements.txt
 # Configuration
 
 Fill in the `config.py` file the following information:
+- `NEOS_USERNAME`: neos username
+- `NEOS_PASSWORD`: neos password
 - `TOKEN`: discord bot token
 
 # Usage
@@ -19,3 +21,8 @@ Fill in the `config.py` file the following information:
 ```
 python main.py
 ```
+
+# scripts
+
+The scripts `set_from_backup.py` is used for migrate user list from an account
+to the cloud variable `orion.userAccess`.
