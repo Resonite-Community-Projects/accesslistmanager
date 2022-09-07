@@ -50,7 +50,11 @@ for (pos, (friend, updated)) in enumerate(friends_list.items()):
     if not updated:
         print(f"Set contact {friend} [{pos}/{total}]")
         msg = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess "{friend}" true'
-        client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', msg)
+        try:
+            client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', msg)
+        except Exception as exc:
+            write_contacts(friends_list)
+            raise exc
         friends_list[friend] = True
     else:
         print(f"Ignore already updated contact {friend} [{pos}/{total}]")
