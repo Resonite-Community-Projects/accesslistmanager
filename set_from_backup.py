@@ -56,8 +56,8 @@ for (pos, (friend, updated)) in enumerate(friends_list.items()):
             write_contacts(friends_list)
             raise exc
         friends_list[friend] = True
+        time.sleep(60)
     else:
         print(f"Ignore already updated contact {friend} [{pos}/{total}]")
-    time.sleep(60)
 
 write_contacts(friends_list)
