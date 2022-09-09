@@ -2,6 +2,7 @@
 
 import logging
 import sqlite3
+import traceback
 from datetime import datetime
 
 from sqlalchemy import create_engine
@@ -13,7 +14,10 @@ Base = declarative_base()
 
 from disnake.ext import commands
 
-from config import DISCORD_BOT_TOKEN
+from neos.client import Client
+from neos.classes import LoginDetails
+
+from config import DISCORD_BOT_TOKEN, NEOS_USERNAME, NEOS_PASSWORD
 
 bot = commands.InteractionBot()
 
@@ -23,6 +27,12 @@ logger = logging.getLogger('discord')
 handler = logging.FileHandler(filename='discord_usage.log', encoding='utf-8', mode='a')
 handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s'))
 logger.addHandler(handler)
+
+client = Client()
+
+client.login(
+    LoginDetails(username=NEOS_USERNAME, password=NEOS_PASSWORD)
+)
 
 
 class User(Base):
@@ -66,8 +76,23 @@ def user_exist(username):
         neos_users.count()
     )
 
-def log_action(inter, username, action, status):
-        logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username} ({status})')
+def log_action(inter, username, action):
+        logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
+
+def send_cmd(cmd):
+    client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', cmd)
+    msgs = client.getMessageLegacy(maxItems=10, user='U-Neos')
+    try:
+        cmd_index = next((i for (i, d) in enumerate(msgs) if d["content"] == cmd), None)
+        resp_index = cmd_index - 1
+        return msgs[resp_index]['content']
+    except (TypeError, IndexError) as exc:
+        print('Command user:')
+        print(cmd)
+        print('Last messages from U-Neos:')
+        print(msgs)
+        print(traceback.format_exc())
+        raise ValueError('Something is wrong with the neos API, check the bot logs')
 
 @bot.slash_command(description='Manage USFN AD accesslist')
 async def accesslist(inter):
@@ -75,6 +100,7 @@ async def accesslist(inter):
 
 @accesslist.sub_command(name='add', description='Adds a new users to the cloud variable')
 async def add(inter, neos_username: str, discord_username: str, discord_id: int):
+    log_action(inter, neos_username, 'add')
     if not neos_username.startswith('U-'):
         await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
         return
@@ -93,7 +119,6 @@ async def add(inter, neos_username: str, discord_username: str, discord_id: int)
         )
         session.commit()
 
-    log_action(inter, neos_username, 'add', 'success')
     await inter.response.send_message(
         f'User {neos_username} added to the acceptlist')
 
@@ -101,6 +126,7 @@ async def add(inter, neos_username: str, discord_username: str, discord_id: int)
     name='remove',
     description='Removes an user, by `U-` neos or discord username from the cloud variable')
 async def remove(inter, username: str):
+    log_action(inter, username, 'remove')
     #await inter.response.send_message(f'/setGroupVarValue G-United-Space-Force-N orion.userAccess.bool {username} false')
     if user_exist(username):
         if username.startswith('U-'):
@@ -110,15 +136,18 @@ async def remove(inter, username: str):
         session.delete(neos_user)
         session.commit()
 
-    log_action(inter, username, 'remove', 'success')
     await inter.response.send_message(
         f'User {username} removed fromt the acceptlist')
 
 @accesslist.sub_command(
     name='search',
     description='Returns if an user, by `U-` neos or discord username is in the cloud variable')
-async def search(inter, username: str, type: str = 'user'):
-    log_action(inter, username, 'search', 'success')
+async def search(
+        inter, username: str,
+        type: str = commands.Param(
+            choices={"User": "user", "Verifier": "verifier"})
+    ):
+    log_action(inter, username, 'search')
     if type == 'verifier':
         neos_users = session.query(User).filter(User.verifier == username)
         users = "".join([f" - {user}\n" for user in neos_users])
@@ -133,17 +162,23 @@ async def search(inter, username: str, type: str = 'user'):
                 neos_user = session.query(User).filter(User.neos_username == username)[0]
             else:
                 neos_user = session.query(User).filter(User.discord_username == username)[0]
+                username = neos_user.neos_username
+            try:
+                cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
+            except ValueError as exc:
+                cloud_var = exc
             formated_text = (
                 f"**Neos U- username:** {neos_user.neos_username}\n"
                 f"**Discord username:** {neos_user.discord_username}\n"
                 f"**Discord id:** {neos_user.discord_id}\n"
                 f"**Verifier discord username:** {neos_user.verifier}\n"
-                f"**Verification date:** {neos_user.verified_date} ({neos_user.verified_date})"
+                f"**Verification date:** {neos_user.verified_date} ({neos_user.verified_date})\n"
+                f"**Cloud variable status:** {cloud_var}"
             )
             await inter.response.send_message(formated_text)
         else:
             username_type = "neos"
-            if username.startswith('U-'):
+            if not username.startswith('U-'):
                 username_type = "discord"
             await inter.response.send_message(
                 f"No {username_type} user found for `{username}`")
