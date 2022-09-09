@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  accesslistbot:
+    build: .
+    volumes:
+      - "./config.py:/app/config.py"
+      - "./accesslist.db:/app/accesslist.db"
+      - "./discord_bot.log:/app/discord_bot.log"
+      - "./discord_usage.log:/app/discord_usage.log"
