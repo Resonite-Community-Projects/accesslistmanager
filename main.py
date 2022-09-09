@@ -41,17 +41,15 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     neos_username = Column(Text, unique=True, nullable=False)
     discord_username = Column(Text, nullable=False)
-    discord_id = Column(Integer, nullable=False)
     verifier = Column(Text, nullable=False)
     verified_date = Column(DateTime, default=datetime.utcnow)
 
     def __init__(
-            self, neos_username, discord_username, discord_id, verifier,
+            self, neos_username, discord_username, verifier,
             verified_date = None
     ):
         self.neos_username = neos_username
         self.discord_username = discord_username
-        self.discord_id = discord_id
         self.verifier = verifier
         if verified_date:
             self.verified_date = verified_date
@@ -90,7 +88,8 @@ def send_cmd(cmd):
         print('Command user:')
         print(cmd)
         print('Last messages from U-Neos:')
-        print(msgs)
+        for msg in msgs:
+            print(msg['sendTime'], msg['content'])
         print(traceback.format_exc())
         raise ValueError('Something is wrong with the neos API, check the bot logs')
 
@@ -99,7 +98,7 @@ async def accesslist(inter):
     pass
 
 @accesslist.sub_command(name='add', description='Adds a new users to the cloud variable')
-async def add(inter, neos_username: str, discord_username: str, discord_id: int):
+async def add(inter, neos_username: str, discord_username: str):
     log_action(inter, neos_username, 'add')
     if not neos_username.startswith('U-'):
         await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
@@ -108,26 +107,56 @@ async def add(inter, neos_username: str, discord_username: str, discord_id: int)
         await inter.response.send_message("The discord username must also have the discord tag!")
         return
     if not user_exist(neos_username):
-        #await inter.response.send_message(f'/setGroupVarValue G-United-Space-Force-N orion.userAccess.bool {username} true')
+        try:
+            cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {neos_username} true'
+            cloud_var = send_cmd(cmd)
+            if cloud_var == 'Variable set!':
+                message = f'User {neos_username} added from the accesslist'
+            else:
+                print(cmd)
+                print(cloud_var)
+                message = "Error when setting the cloud variable, please check the logs"
+                await inter.response.send_message(message)
+                return
+        except ValueError:
+            message = 'Something is wrong, check logs'
         session.add(
             User(
                 neos_username,
                 discord_username,
-                discord_id,
                 inter.user.name + "#" + inter.user.tag,
             )
         )
         session.commit()
-
-    await inter.response.send_message(
-        f'User {neos_username} added to the acceptlist')
+        await inter.response.send_message(message)
+    else:
+        message = f'User {neos_username} already added to the accesstlist'
+        await inter.response.send_message(message)
 
 @accesslist.sub_command(
     name='remove',
     description='Removes an user, by `U-` neos or discord username from the cloud variable')
 async def remove(inter, username: str):
     log_action(inter, username, 'remove')
-    #await inter.response.send_message(f'/setGroupVarValue G-United-Space-Force-N orion.userAccess.bool {username} false')
+    if not username.startswith('U-') or "#" not in username:
+        await inter.response.send_message(
+            "The username must either start with U- for neos or contains the discord hashtag number for discord one")
+        return
+    try:
+        cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {username} false'
+        cloud_var = send_cmd(cmd)
+        if cloud_var == 'Variable set!':
+            message = f'User {username} removed from the accesstlist'
+        else:
+            print(cmd)
+            print(cloud_var)
+            message = "Error when setting the cloud variable, please check the logs"
+            await inter.response.send_message(message)
+            return
+    except ValueError:
+        message = 'Something is wrong, check logs'
+        await inter.response.send_message(message)
+        return
     if user_exist(username):
         if username.startswith('U-'):
             neos_user = session.query(User).filter(User.neos_username == username)[0]
@@ -135,9 +164,10 @@ async def remove(inter, username: str):
             neos_user = session.query(User).filter(User.discord_username == username)[0]
         session.delete(neos_user)
         session.commit()
-
-    await inter.response.send_message(
-        f'User {username} removed fromt the acceptlist')
+        await inter.response.send_message(message)
+    else:
+        message = (f'User {username} already removed from the accesslist\n')
+        await inter.response.send_message(message)
 
 @accesslist.sub_command(
     name='search',
@@ -149,12 +179,18 @@ async def search(
     ):
     log_action(inter, username, 'search')
     if type == 'verifier':
+        if '#' not in username:
+            await inter.response.send_message("A discord username must contains the hashtag number")
+            return
         neos_users = session.query(User).filter(User.verifier == username)
-        users = "".join([f" - {user}\n" for user in neos_users])
-        formated_text = (
-            f"{username} had accepted the following users in the past:\n"
-            f"{users}"
-        )
+        if neos_users:
+            users = "".join([f" - {user}\n" for user in neos_users])
+            formated_text = (
+                f"{username} had accepted the following users in the past:\n"
+                f"{users}"
+            )
+        else:
+            formated_text = f"{username} have not yet accepted users"
         await inter.response.send_message(formated_text)
     else:
         if user_exist(username):
@@ -170,13 +206,16 @@ async def search(
             formated_text = (
                 f"**Neos U- username:** {neos_user.neos_username}\n"
                 f"**Discord username:** {neos_user.discord_username}\n"
-                f"**Discord id:** {neos_user.discord_id}\n"
                 f"**Verifier discord username:** {neos_user.verifier}\n"
                 f"**Verification date:** {neos_user.verified_date} ({neos_user.verified_date})\n"
                 f"**Cloud variable status:** {cloud_var}"
             )
             await inter.response.send_message(formated_text)
         else:
+            if not username.startswith('U-') and not "#" in username:
+                await inter.response.send_message(
+                    f"A neos username start with a U- and a discord username must have an hashtag number")
+                return
             username_type = "neos"
             if not username.startswith('U-'):
                 username_type = "discord"
