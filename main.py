@@ -3,6 +3,7 @@
 import logging
 import sqlite3
 import traceback
+import time
 from datetime import datetime
 
 from sqlalchemy import create_engine
@@ -80,6 +81,7 @@ def log_action(inter, username, action):
 def send_cmd(cmd):
     client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', cmd)
     msgs = client.getMessageLegacy(maxItems=10, user='U-Neos')
+    time.sleep(0.5)
     try:
         cmd_index = next((i for (i, d) in enumerate(msgs) if d["content"] == cmd), None)
         resp_index = cmd_index - 1
@@ -106,16 +108,20 @@ async def add(inter, neos_username: str, discord_username: str):
     elif "#" not in discord_username:
         await inter.response.send_message("The discord username must also have the discord tag!")
         return
+    neos_username = neos_username.replace(' ', '-')
     if not user_exist(neos_username):
         try:
             cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {neos_username} true'
             cloud_var = send_cmd(cmd)
             if cloud_var == 'Variable set!':
-                message = f'User {neos_username} added from the accesslist'
+                message = f'User {neos_username} added to the accesslist'
             else:
                 print(cmd)
                 print(cloud_var)
-                message = "Error when setting the cloud variable, please check the logs"
+                message = (
+                    "Error when setting the cloud variable:\n"
+                    f"{cloud_var}"
+                )
                 await inter.response.send_message(message)
                 return
         except ValueError:
@@ -138,10 +144,14 @@ async def add(inter, neos_username: str, discord_username: str):
     description='Removes an user, by `U-` neos or discord username from the cloud variable')
 async def remove(inter, username: str):
     log_action(inter, username, 'remove')
-    if not username.startswith('U-') or "#" not in username:
+    if all(x not in username for x in ('U-', '#')):
         await inter.response.send_message(
             "The username must either start with U- for neos or contains the discord hashtag number for discord one")
         return
+    if username.startswith('-U'):
+        username = username.replace(' ', '-')
+    else:
+        username = session.query(User).filter(User.discord_username == username)[0].neos_username
     try:
         cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {username} false'
         cloud_var = send_cmd(cmd)
@@ -150,7 +160,10 @@ async def remove(inter, username: str):
         else:
             print(cmd)
             print(cloud_var)
-            message = "Error when setting the cloud variable, please check the logs"
+            message = (
+                "Error when setting the cloud variable:\n"
+                f"{cloud_var}"
+            )
             await inter.response.send_message(message)
             return
     except ValueError:
@@ -193,6 +206,8 @@ async def search(
             formated_text = f"{username} have not yet accepted users"
         await inter.response.send_message(formated_text)
     else:
+        if username.startswith('-U'):
+            username = username.replace(' ', '-')
         if user_exist(username):
             if username.startswith('U-'):
                 neos_user = session.query(User).filter(User.neos_username == username)[0]
