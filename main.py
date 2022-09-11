@@ -13,6 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+import disnake
 from disnake.ext import commands
 
 from neos.client import Client
@@ -20,7 +21,9 @@ from neos.classes import LoginDetails
 
 from config import DISCORD_BOT_TOKEN, NEOS_USERNAME, NEOS_PASSWORD
 
-bot = commands.InteractionBot()
+intents = disnake.Intents.all()
+
+bot = commands.InteractionBot(intents=intents)
 
 logging.basicConfig(filename='discord_bot.log', level=logging.DEBUG, format='%(levelname)s %(asctime)s %(message)s')
 
@@ -99,8 +102,22 @@ def send_cmd(cmd):
 async def accesslist(inter):
     pass
 
+async def autocomp_members(inter: disnake.ApplicationCommandInteraction, user_input: str):
+    if user_input.startswith('U-'):
+        members = session.query(User).filter(User.neos_username.startswith(user_input)).all()
+        members = [member.neos_username for member in members]
+    elif len(user_input) > 1:
+        members = inter.guild.members
+        members = [f"{member.name}#{member.discriminator}" for member in members if member.name.startswith(user_input)]
+    else:
+        members = session.query(User).filter(User.neos_username.startswith(user_input)).all()
+        members = [member.neos_username for member in members]
+        _members = inter.guild.members
+        members.extend([f"{member.name}#{member.discriminator}" for member in _members if member.name.startswith(user_input)])
+    return members[:25]
+
 @accesslist.sub_command(name='add', description='Adds a new users to the cloud variable')
-async def add(inter, neos_username: str, discord_username: str):
+async def add(inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_members)):
     log_action(inter, neos_username, 'add')
     if not neos_username.startswith('U-'):
         await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
@@ -142,13 +159,13 @@ async def add(inter, neos_username: str, discord_username: str):
 @accesslist.sub_command(
     name='remove',
     description='Removes an user, by `U-` neos or discord username from the cloud variable')
-async def remove(inter, username: str):
+async def remove(inter, username: str = commands.Param(autocomplete=autocomp_members)):
     log_action(inter, username, 'remove')
     if all(x not in username for x in ('U-', '#')):
         await inter.response.send_message(
             "The username must either start with U- for neos or contains the discord hashtag number for discord one")
         return
-    if username.startswith('-U'):
+    if username.startswith('U-'):
         username = username.replace(' ', '-')
     else:
         username = session.query(User).filter(User.discord_username == username)[0].neos_username
@@ -186,7 +203,7 @@ async def remove(inter, username: str):
     name='search',
     description='Returns if an user, by `U-` neos or discord username is in the cloud variable')
 async def search(
-        inter, username: str,
+        inter, username: str = commands.Param(autocomplete=autocomp_members),
         type: str = commands.Param(
             choices={"User": "user", "Verifier": "verifier"})
     ):
