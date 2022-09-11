@@ -140,7 +140,7 @@ class AccessList(commands.Cog):
         if not neos_username.startswith('U-'):
             await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
             return
-        elif "#" not in discord_username:
+        elif all(x not in discord_username for x in ('@', '#')):
             await inter.response.send_message("The discord username must also have the discord tag!")
             return
         neos_username = neos_username.replace(' ', '-')
@@ -179,7 +179,7 @@ class AccessList(commands.Cog):
         description='Removes an user, by `U-` neos or discord username from the cloud variable')
     async def remove(self, inter, username: str = commands.Param(autocomplete=autocomp_members)):
         log_action(inter, username, 'remove')
-        if all(x not in username for x in ('U-', '#')):
+        if all(x not in username for x in ('U-', '#', '@')):
             await inter.response.send_message(
                 "The username must either start with U- for neos or contains the discord hashtag number for discord one")
             return
