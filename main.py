@@ -165,7 +165,7 @@ class AccessList(commands.Cog):
                 User(
                     neos_username,
                     discord_username,
-                    inter.user.name + "#" + inter.user.tag,
+                    inter.user.id,
                 )
             )
             session.commit()
@@ -228,9 +228,16 @@ class AccessList(commands.Cog):
         ):
         log_action(inter, username, 'search')
         if type == 'verifier':
-            if '#' not in username:
-                await inter.response.send_message("A discord username must contains the hashtag number")
+            if all(x not in username for x in ('#', '@')):
+                await inter.response.send_message("A discord username must contains the hashtag number or start with an @")
                 return
+            if '#' in username:
+                guild_members = inter.guild.members
+                for member in guild_members:
+                    if f"{member.name}#{member.discriminator}" == username:
+                        username = member.id
+            elif username.startswith('@'):
+                username = username.replace('@', '')
             neos_users = session.query(User).filter(User.verifier == username)
             if neos_users:
                 users = "".join([f" - {user}\n" for user in neos_users])
