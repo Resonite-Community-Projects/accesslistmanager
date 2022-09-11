@@ -5,5 +5,6 @@ services:
     build: .
     volumes:
       - "./config.py:/app/config.py"
+      - "./main.py:/app/main.py"
       - "./accesslist.db:/app/accesslist.db"
       - "./access_manager.log:/app/access_manager.log"
