@@ -1,6 +1,6 @@
 # AccessList Manager
 
-# Installation
+## Installation
 
 **Note:** Because of the discord bot library, disnake, the minimale version
 of this project is: 3.8
@@ -9,20 +9,25 @@ of this project is: 3.8
 pip install -r requirements.txt
 ```
 
-# Configuration
+## Configuration
 
 Fill in the `config.py` file the following information:
 - `NEOS_USERNAME`: neos username
 - `NEOS_PASSWORD`: neos password
 - `TOKEN`: discord bot token
 
-# Usage
+## Usage
 
 ```
 python main.py
 ```
 
-# scripts
+## scripts
 
 The scripts `set_from_backup.py` is used for migrate user list from an account
 to the cloud variable `orion.userAccess`.
+
+## docker-compose usage
+
+If you want to use the docker-compose.yml you **must** first create **manually**
+the files: `discord_bot.log` and `discord_usage.log`

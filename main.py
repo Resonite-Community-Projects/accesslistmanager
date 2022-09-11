@@ -1,5 +1,6 @@
 #!/bin/python
 
+import sys
 import logging
 import sqlite3
 import traceback
@@ -25,12 +26,27 @@ intents = disnake.Intents.all()
 
 bot = commands.InteractionBot(intents=intents)
 
-logging.basicConfig(filename='discord_bot.log', level=logging.DEBUG, format='%(levelname)s %(asctime)s %(message)s')
+logging.basicConfig(
+        level=logging.WARNING,
+        format='%(asctime)s %(levelname)s %(name)s %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler("discord_bot.log", mode='a')
+        ]
+    )
 
-logger = logging.getLogger('discord')
-handler = logging.FileHandler(filename='discord_usage.log', encoding='utf-8', mode='a')
-handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s'))
-logger.addHandler(handler)
+log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
+
+log_usage = logging.getLogger('log_usage')
+log_usage_file_handler = logging.FileHandler(filename='discord_usage.log', encoding='utf-8', mode='a')
+log_usage_file_handler.setFormatter(log_formatter)
+log_usage_stdout_handler = logging.StreamHandler(stream=sys.stdout)
+log_usage_stdout_handler.setFormatter(log_formatter)
+log_usage.addHandler(log_usage_file_handler)
+log_usage.addHandler(log_usage_stdout_handler)
+
+am_logger = logging.getLogger('access_manager')
+am_logger.setLevel(logging.INFO)
 
 client = Client()
 
@@ -79,7 +95,7 @@ def user_exist(username):
     )
 
 def log_action(inter, username, action):
-        logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
+        log_usage.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
 
 def send_cmd(cmd):
     client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', cmd)
@@ -254,4 +270,5 @@ async def search(
             await inter.response.send_message(
                 f"No {username_type} user found for `{username}`")
 
+am_logger('Starting access manager')
 bot.run(DISCORD_BOT_TOKEN)
