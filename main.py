@@ -96,7 +96,7 @@ def log_action(inter, username, action):
 def send_cmd(cmd):
     client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', cmd)
     msgs = client.getMessageLegacy(maxItems=10, user='U-Neos')
-    time.sleep(0.5)
+    time.sleep(1)
     try:
         cmd_index = next((i for (i, d) in enumerate(msgs) if d["content"] == cmd), None)
         resp_index = cmd_index - 1
