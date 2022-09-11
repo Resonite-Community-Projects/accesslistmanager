@@ -30,4 +30,4 @@ to the cloud variable `orion.userAccess`.
 ## docker-compose usage
 
 If you want to use the docker-compose.yml you **must** first create **manually**
-the files: `discord_bot.log` and `discord_usage.log`
+the file: `access_manager.log`

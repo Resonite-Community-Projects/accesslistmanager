@@ -31,19 +31,14 @@ logging.basicConfig(
         format='%(asctime)s %(levelname)s %(name)s %(message)s',
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler("discord_bot.log", mode='a')
+            logging.FileHandler("access_manager.log", mode='a')
         ]
     )
 
 log_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(message)s')
 
-log_usage = logging.getLogger('log_usage')
-log_usage_file_handler = logging.FileHandler(filename='discord_usage.log', encoding='utf-8', mode='a')
-log_usage_file_handler.setFormatter(log_formatter)
-log_usage_stdout_handler = logging.StreamHandler(stream=sys.stdout)
-log_usage_stdout_handler.setFormatter(log_formatter)
-log_usage.addHandler(log_usage_file_handler)
-log_usage.addHandler(log_usage_stdout_handler)
+usage_logger = logging.getLogger('access_manager.usage')
+usage_logger.setLevel(logging.INFO)
 
 am_logger = logging.getLogger('access_manager')
 am_logger.setLevel(logging.INFO)
@@ -95,7 +90,7 @@ def user_exist(username):
     )
 
 def log_action(inter, username, action):
-        log_usage.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
+        usage_logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
 
 def send_cmd(cmd):
     client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', cmd)
