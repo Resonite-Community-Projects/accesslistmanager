@@ -22,10 +22,6 @@ from neos.classes import LoginDetails
 
 from config import DISCORD_BOT_TOKEN, NEOS_USERNAME, NEOS_PASSWORD
 
-intents = disnake.Intents.all()
-
-bot = commands.InteractionBot(intents=intents)
-
 logging.basicConfig(
         level=logging.WARNING,
         format='%(asctime)s %(levelname)s %(name)s %(message)s',
@@ -109,10 +105,6 @@ def send_cmd(cmd):
         print(traceback.format_exc())
         raise ValueError('Something is wrong with the neos API, check the bot logs')
 
-@bot.slash_command(description='Manage USFN AD accesslist')
-async def accesslist(inter):
-    pass
-
 async def autocomp_members(inter: disnake.ApplicationCommandInteraction, user_input: str):
     if user_input.startswith('U-'):
         members = session.query(User).filter(User.neos_username.startswith(user_input)).all()
@@ -127,25 +119,77 @@ async def autocomp_members(inter: disnake.ApplicationCommandInteraction, user_in
         members.extend([f"{member.name}#{member.discriminator}" for member in _members if member.name.startswith(user_input)])
     return members[:25]
 
-@accesslist.sub_command(name='add', description='Adds a new users to the cloud variable')
-async def add(inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_members)):
-    log_action(inter, neos_username, 'add')
-    if not neos_username.startswith('U-'):
-        await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
-        return
-    elif "#" not in discord_username:
-        await inter.response.send_message("The discord username must also have the discord tag!")
-        return
-    neos_username = neos_username.replace(' ', '-')
-    if not user_exist(neos_username):
+
+class AccessList(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.slash_command(description='Manage USFN AD accesslist')
+    async def accesslist(self, inter):
+        pass
+
+    @accesslist.sub_command(name='add', description='Adds a new users to the cloud variable')
+    async def add(self, inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_members)):
+        log_action(inter, neos_username, 'add')
+        if not neos_username.startswith('U-'):
+            await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
+            return
+        elif "#" not in discord_username:
+            await inter.response.send_message("The discord username must also have the discord tag!")
+            return
+        neos_username = neos_username.replace(' ', '-')
+        if not user_exist(neos_username):
+            try:
+                cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {neos_username} true'
+                cloud_var = send_cmd(cmd)
+                if cloud_var == 'Variable set!':
+                    message = f'User {neos_username} added to the accesslist'
+                else:
+                    logging.error(cmd)
+                    logging.error(cloud_var)
+                    message = (
+                        "Error when setting the cloud variable:\n"
+                        f"{cloud_var}"
+                    )
+                    await inter.response.send_message(message)
+                    return
+            except ValueError:
+                message = 'Something is wrong, check logs'
+            session.add(
+                User(
+                    neos_username,
+                    discord_username,
+                    inter.user.name + "#" + inter.user.tag,
+                )
+            )
+            session.commit()
+            await inter.response.send_message(message)
+        else:
+            message = f'User {neos_username} already added to the accesstlist'
+            await inter.response.send_message(message)
+
+    @accesslist.sub_command(
+        name='remove',
+        description='Removes an user, by `U-` neos or discord username from the cloud variable')
+    async def remove(self, inter, username: str = commands.Param(autocomplete=autocomp_members)):
+        log_action(inter, username, 'remove')
+        if all(x not in username for x in ('U-', '#')):
+            await inter.response.send_message(
+                "The username must either start with U- for neos or contains the discord hashtag number for discord one")
+            return
+        if username.startswith('U-'):
+            username = username.replace(' ', '-')
+        else:
+            username = session.query(User).filter(User.discord_username == username)[0].neos_username
         try:
-            cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {neos_username} true'
+            cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {username} false'
             cloud_var = send_cmd(cmd)
             if cloud_var == 'Variable set!':
-                message = f'User {neos_username} added to the accesslist'
+                message = f'User {username} removed from the accesstlist'
             else:
-                print(cmd)
-                print(cloud_var)
+                logging.error(cmd)
+                logging.error(cloud_var)
                 message = (
                     "Error when setting the cloud variable:\n"
                     f"{cloud_var}"
@@ -154,116 +198,84 @@ async def add(inter, neos_username: str, discord_username: str = commands.Param(
                 return
         except ValueError:
             message = 'Something is wrong, check logs'
-        session.add(
-            User(
-                neos_username,
-                discord_username,
-                inter.user.name + "#" + inter.user.tag,
-            )
-        )
-        session.commit()
-        await inter.response.send_message(message)
-    else:
-        message = f'User {neos_username} already added to the accesstlist'
-        await inter.response.send_message(message)
-
-@accesslist.sub_command(
-    name='remove',
-    description='Removes an user, by `U-` neos or discord username from the cloud variable')
-async def remove(inter, username: str = commands.Param(autocomplete=autocomp_members)):
-    log_action(inter, username, 'remove')
-    if all(x not in username for x in ('U-', '#')):
-        await inter.response.send_message(
-            "The username must either start with U- for neos or contains the discord hashtag number for discord one")
-        return
-    if username.startswith('U-'):
-        username = username.replace(' ', '-')
-    else:
-        username = session.query(User).filter(User.discord_username == username)[0].neos_username
-    try:
-        cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {username} false'
-        cloud_var = send_cmd(cmd)
-        if cloud_var == 'Variable set!':
-            message = f'User {username} removed from the accesstlist'
-        else:
-            print(cmd)
-            print(cloud_var)
-            message = (
-                "Error when setting the cloud variable:\n"
-                f"{cloud_var}"
-            )
             await inter.response.send_message(message)
             return
-    except ValueError:
-        message = 'Something is wrong, check logs'
-        await inter.response.send_message(message)
-        return
-    if user_exist(username):
-        if username.startswith('U-'):
-            neos_user = session.query(User).filter(User.neos_username == username)[0]
-        else:
-            neos_user = session.query(User).filter(User.discord_username == username)[0]
-        session.delete(neos_user)
-        session.commit()
-        await inter.response.send_message(message)
-    else:
-        message = (f'User {username} already removed from the accesslist\n')
-        await inter.response.send_message(message)
-
-@accesslist.sub_command(
-    name='search',
-    description='Returns if an user, by `U-` neos or discord username is in the cloud variable')
-async def search(
-        inter, username: str = commands.Param(autocomplete=autocomp_members),
-        type: str = commands.Param(
-            choices={"User": "user", "Verifier": "verifier"})
-    ):
-    log_action(inter, username, 'search')
-    if type == 'verifier':
-        if '#' not in username:
-            await inter.response.send_message("A discord username must contains the hashtag number")
-            return
-        neos_users = session.query(User).filter(User.verifier == username)
-        if neos_users:
-            users = "".join([f" - {user}\n" for user in neos_users])
-            formated_text = (
-                f"{username} had accepted the following users in the past:\n"
-                f"{users}"
-            )
-        else:
-            formated_text = f"{username} have not yet accepted users"
-        await inter.response.send_message(formated_text)
-    else:
-        if username.startswith('-U'):
-            username = username.replace(' ', '-')
         if user_exist(username):
             if username.startswith('U-'):
                 neos_user = session.query(User).filter(User.neos_username == username)[0]
             else:
                 neos_user = session.query(User).filter(User.discord_username == username)[0]
-                username = neos_user.neos_username
-            try:
-                cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
-            except ValueError as exc:
-                cloud_var = exc
-            formated_text = (
-                f"**Neos U- username:** {neos_user.neos_username}\n"
-                f"**Discord username:** {neos_user.discord_username}\n"
-                f"**Verifier discord username:** {neos_user.verifier}\n"
-                f"**Verification date:** {neos_user.verified_date} ({neos_user.verified_date})\n"
-                f"**Cloud variable status:** {cloud_var}"
-            )
+            session.delete(neos_user)
+            session.commit()
+            await inter.response.send_message(message)
+        else:
+            message = (f'User {username} already removed from the accesslist\n')
+            await inter.response.send_message(message)
+
+    @accesslist.sub_command(
+        name='search',
+        description='Returns if an user, by `U-` neos or discord username is in the cloud variable')
+    async def search(
+            self,
+            inter, username: str = commands.Param(autocomplete=autocomp_members),
+            type: str = commands.Param(
+                choices={"User": "user", "Verifier": "verifier"})
+        ):
+        log_action(inter, username, 'search')
+        if type == 'verifier':
+            if '#' not in username:
+                await inter.response.send_message("A discord username must contains the hashtag number")
+                return
+            neos_users = session.query(User).filter(User.verifier == username)
+            if neos_users:
+                users = "".join([f" - {user}\n" for user in neos_users])
+                formated_text = (
+                    f"{username} had accepted the following users in the past:\n"
+                    f"{users}"
+                )
+            else:
+                formated_text = f"{username} have not yet accepted users"
             await inter.response.send_message(formated_text)
         else:
-            if not username.startswith('U-') and not "#" in username:
+            if username.startswith('-U'):
+                username = username.replace(' ', '-')
+            if user_exist(username):
+                if username.startswith('U-'):
+                    neos_user = session.query(User).filter(User.neos_username == username)[0]
+                else:
+                    neos_user = session.query(User).filter(User.discord_username == username)[0]
+                    username = neos_user.neos_username
+                try:
+                    cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
+                except ValueError as exc:
+                    cloud_var = exc
+                formated_text = (
+                    f"**Neos U- username:** {neos_user.neos_username}\n"
+                    f"**Discord username:** {neos_user.discord_username}\n"
+                    f"**Verifier discord username:** {neos_user.verifier}\n"
+                    f"**Verification date:** {neos_user.verified_date} ({neos_user.verified_date})\n"
+                    f"**Cloud variable status:** {cloud_var}"
+                )
+                await inter.response.send_message(formated_text)
+            else:
+                if not username.startswith('U-') and not "#" in username:
+                    await inter.response.send_message(
+                        f"A neos username start with a U- and a discord username must have an hashtag number")
+                    return
+                username_type = "neos"
+                if not username.startswith('U-'):
+                    username_type = "discord"
                 await inter.response.send_message(
-                    f"A neos username start with a U- and a discord username must have an hashtag number")
-                return
-            username_type = "neos"
-            if not username.startswith('U-'):
-                username_type = "discord"
-            await inter.response.send_message(
-                f"No {username_type} user found for `{username}`")
+                    f"No {username_type} user found for `{username}`")
 
-am_logger('Starting access manager')
+am_logger.info('Starting access manager')
+
+intents = disnake.Intents.all()
+bot = commands.InteractionBot(intents=intents)
+
+@bot.event
+async def on_ready():
+    am_logger.info("Access manager discord bot is ready!")
+
+bot.add_cog(AccessList(bot))
 bot.run(DISCORD_BOT_TOKEN)
