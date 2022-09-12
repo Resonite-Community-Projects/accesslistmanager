@@ -190,7 +190,7 @@ class AccessList(commands.Cog):
 
     @accesslist.sub_command(
         name='remove',
-        description='Removes an user, by `U-` neos or discord username from the cloud variable')
+        description='Removes an user from the cloud variable')
     async def remove(self, inter, username: str = commands.Param(autocomplete=autocomp_members)):
         if all(x not in username for x in ('U-', '#', '@')):
             await inter.response.send_message(
@@ -253,7 +253,7 @@ class AccessList(commands.Cog):
 
     @accesslist.sub_command(
         name='search',
-        description='Returns if an user, by `U-` neos or discord username is in the cloud variable')
+        description='Returns if an user information')
     async def search(
             self,
             inter, username: str = commands.Param(autocomplete=autocomp_members),
