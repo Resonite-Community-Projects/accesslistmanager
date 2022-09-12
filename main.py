@@ -284,9 +284,9 @@ class AccessList(commands.Cog):
                 username = username.replace(' ', '-') # Automaticly replace all space for dash like neos
             neos_users = session.query(User).filter(User.verifier == username)
             if neos_users:
-                users = "".join([f" - {user}\n" for user in neos_users])
+                users = "".join([f" - {user} (<@{user.discord_id}>)\n" for user in neos_users])
                 formated_text = (
-                    f"{username} had accepted the following users in the past:\n"
+                    f"<@{username}> had accepted the following users in the past:\n"
                     f"{users}"
                 )
             else:
