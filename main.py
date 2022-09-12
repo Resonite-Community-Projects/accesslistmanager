@@ -131,6 +131,11 @@ async def autocomp_members(inter: disnake.ApplicationCommandInteraction, user_in
         members.extend([f"{member.name}#{member.discriminator}" for member in _members if member.name.startswith(user_input)])
     return members[:25]
 
+async def autocomp_discord_members(inter: disnake.ApplicationCommandInteraction, user_input: str):
+    members = inter.guild.members
+    members = [f"{member.name}#{member.discriminator}" for member in members if member.name.startswith(user_input)]
+    return members[:25]
+
 
 class AccessList(commands.Cog):
 
@@ -142,13 +147,13 @@ class AccessList(commands.Cog):
         pass
 
     @accesslist.sub_command(name='add', description='Adds a new users to the cloud variable')
-    async def add(self, inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_members)):
+    async def add(self, inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_discord_members)):
         log_action(inter, neos_username, 'add')
         if not neos_username.startswith('U-'):
             await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
             return
         elif all(x not in discord_username for x in ('@', '#')):
-            await inter.response.send_message("The discord username must also have the discord tag!")
+            await inter.response.send_message("The discord username must be either a discord name + discrininator or an id starting with `@`")
             return
         guild_members = inter.guild.members
         if '#' in discord_username:
