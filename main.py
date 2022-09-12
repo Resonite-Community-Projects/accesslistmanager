@@ -95,13 +95,18 @@ def log_action(inter, username, action):
         username = f"{username[0]}(@{username[1]})"
     usage_logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
 
-def send_cmd(cmd):
+def send_cmd(cmd, second=False):
     client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', cmd)
     msgs = client.getMessageLegacy(maxItems=10, user='U-Neos')
-    time.sleep(1)
     try:
         cmd_index = next((i for (i, d) in enumerate(msgs) if d["content"] == cmd), None)
-        resp_index = cmd_index - 1
+        try:
+            resp_index = cmd_index - 1
+        except TypeError as exc:
+            if not second:
+                return send_cmd(cmd)
+            else:
+                raise exc
         return msgs[resp_index]['content']
     except (TypeError, IndexError) as exc:
         print('Command user:')
