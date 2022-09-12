@@ -152,8 +152,7 @@ class AccessList(commands.Cog):
                     discord_username = str(member.id)
         elif discord_username.startswith('@'):
             discord_username = discord_username.replace('@', '')
-        else:
-            neos_username = neos_username.replace(' ', '-') # Automaticly replace all space for dash like neos
+        neos_username = neos_username.replace(' ', '-') # Automaticly replace all space for dash like neos
         if not user_exist(neos_username):
             try:
                 cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {neos_username} true'
@@ -161,8 +160,8 @@ class AccessList(commands.Cog):
                 if cloud_var == 'Variable set!':
                     message = f'User {neos_username} added to the accesslist'
                 else:
-                    logging.error(cmd)
-                    logging.error(cloud_var)
+                    am_logger.error(cmd)
+                    am_logger.error(cloud_var)
                     message = (
                         "Error when setting the cloud variable:\n"
                         f"{cloud_var}"
@@ -223,8 +222,8 @@ class AccessList(commands.Cog):
             if cloud_var == 'Variable set!':
                 message = f'User {username} removed from the accesstlist'
             else:
-                logging.error(cmd)
-                logging.error(cloud_var)
+                am_logger.error(cmd)
+                am_logger.error(cloud_var)
                 message = (
                     "Error when setting the cloud variable:\n"
                     f"{cloud_var}"
@@ -271,6 +270,8 @@ class AccessList(commands.Cog):
                         username = str(member.id)
             elif username.startswith('@'):
                 username = username.replace('@', '', 1)
+            else:
+                username = username.replace(' ', '-') # Automaticly replace all space for dash like neos
             neos_users = session.query(User).filter(User.verifier == username)
             if neos_users:
                 users = "".join([f" - {user}\n" for user in neos_users])
@@ -294,6 +295,7 @@ class AccessList(commands.Cog):
                     if str(member.id) == username:
                         username_name = f"<@{username}> ({member.name}#{member.discriminator})"
             else:
+                username = username.replace(' ', '-') # Automaticly replace all space for dash like neos
                 username_name = username
             if user_exist(username):
                 if username.startswith('U-'):
@@ -307,7 +309,17 @@ class AccessList(commands.Cog):
                     if str(member.id) == neos_user.verifier:
                         verifier_discord_username = f"{member.name}#{member.discriminator}"
                 try:
-                    cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
+                    cmd = f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}'
+                    cloud_var = send_cmd(cmd)
+                    if "Value:" not in cloud_var:
+                        am_logger.error(cmd)
+                        am_logger.error(cloud_var)
+                        message = (
+                        "Error when getting the cloud variable:\n"
+                            f"{cmd}"
+                        )
+                        await inter.response.send_message(message)
+                        return
                 except ValueError as exc:
                     cloud_var = exc
                 formated_text = (
@@ -319,13 +331,25 @@ class AccessList(commands.Cog):
                 )
             elif username.startswith('U-'):
                 try:
-                    cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
+                    cmd = f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}'
+                    cloud_var = send_cmd(cmd)
+                    if "Value:" not in cloud_var:
+                        am_logger.error(cmd)
+                        am_logger.error(cloud_var)
+                        message = (
+                        "Error when getting the cloud variable:\n"
+                            f"{cmd}"
+                        )
+                        await inter.response.send_message(message)
+                        return
                 except ValueError as exc:
                     cloud_var = exc
                 formated_text = (
                     f"**Neos U- username:** {username}\n"
                     f"**Cloud variable status:** {cloud_var}"
                 )
+                if 'true' in cloud_var:
+                    formated_text += '\n**WARNING**: Cloud variable set to true but user is not in the database!'
             else:
                 formated_text = (
                     f"No discord user found for {username_name}.\n"
