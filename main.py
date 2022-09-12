@@ -286,42 +286,52 @@ class AccessList(commands.Cog):
             if '#' in username:
                 for member in guild_members:
                     if f"{member.name}#{member.discriminator}" == username:
+                        username_name = username
                         username = str(member.id)
             elif username.startswith('@'):
                 username = username.replace('@', '', 1)
+                for member in guild_members:
+                    if str(member.id) == username:
+                        username_name = f"<@{username}> ({member.name}#{member.discriminator})"
+            else:
+                username_name = username
             if user_exist(username):
                 if username.startswith('U-'):
                     neos_user = session.query(User).filter(User.neos_username == username)[0]
                 else:
                     neos_user = session.query(User).filter(User.discord_id == username)[0]
                     username = neos_user.neos_username
-                try:
-                    cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
-                except ValueError as exc:
-                    cloud_var = exc
                 for member in guild_members:
                     if str(member.id) == neos_user.discord_id:
                         neos_discord_username = f"{member.name}#{member.discriminator}"
                     if str(member.id) == neos_user.verifier:
                         verifier_discord_username = f"{member.name}#{member.discriminator}"
+                try:
+                    cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
+                except ValueError as exc:
+                    cloud_var = exc
                 formated_text = (
                     f"**Neos U- username:** {neos_user.neos_username}\n"
-                    f"**Discord username:** <@{neos_user.discord_id}> ({neos_discord_username} - @{neos_user.discord_id})\n"
-                    f"**Verifier discord username:** <@{neos_user.verifier}> (@{verifier_discord_username} - @{neos_user.verifier})\n"
+                    f"**Discord username:** <@{neos_user.discord_id}> ({neos_discord_username})\n"
+                    f"**Verifier discord username:** <@{neos_user.verifier}> ({verifier_discord_username})\n"
                     f"**Verification date:** {neos_user.verified_date} ({neos_user.verified_date})\n"
                     f"**Cloud variable status:** {cloud_var}"
                 )
-                await inter.response.send_message(formated_text)
+            elif username.startswith('U-'):
+                try:
+                    cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
+                except ValueError as exc:
+                    cloud_var = exc
+                formated_text = (
+                    f"**Neos U- username:** {username}\n"
+                    f"**Cloud variable status:** {cloud_var}"
+                )
             else:
-                if not username.startswith('U-') and not "#" in username:
-                    await inter.response.send_message(
-                        f"A neos username start with a U- and a discord username must have an hashtag number")
-                    return
-                username_type = "neos"
-                if not username.startswith('U-'):
-                    username_type = "discord"
-                await inter.response.send_message(
-                    f"No {username_type} user found for `{username}`")
+                formated_text = (
+                    f"No discord user found for {username_name}.\n"
+                    "Use directly the U- user to directly check the value of the cloud variable."
+                )
+            await inter.response.send_message(formated_text)
 
 am_logger.info('Starting access manager')
 
