@@ -43,10 +43,8 @@ The bot should be registered under the slash command `accesslist` and have the 3
 - **remove** This sub command give you the possibility to  remove an user of the cloud variable. The parameter `username` support either a NeosVR User Id, a Discord User Id or a Discord Username following by his discriminator .  There is an hint who will give you a list of all the discord tag of user available either on discord or in the database (as `U-` in the last case). Only NeosVR User Id, `U-`, you will be able to remove it from the cloud variable while the user is not present in the bot database.
 
 - **search** This sub command give you the possibility to search for an user information. Two parameters are available and mandatory, `username` and `type`. 
-
-The first one support either a NeosVR User Id, a Discord User Id or a Discord Username following by his discriminator .  There is an hint who will give you a list of all the discord tag of user available either on discord or in the database (as `U-` in the last case).  Only NeosVR User Id, `U-`, you will be able to remove it from the cloud variable while the user is not present in the bot database.
-
-The second one have tow possible value `User` or `Verifier` the first one will give your the information about the user while the second will give you the information about which user have been verified by the researched verifier.
+  The first one support either a NeosVR User Id, a Discord User Id or a Discord Username following by his discriminator .  There is an hint who will give you a list of all the discord tag of user available either on discord or in the database (as `U-` in the last case).  Only NeosVR User Id, `U-`, you will be able to remove it from the cloud variable while the user is not present in the bot database.
+  The second one have tow possible value `User` or `Verifier` the first one will give your the information about the user while the second will give you the information about which user have been verified by the researched verifier.
 
 **NOTE:** An username can start in 2 differents way **or** having an `#` in the middle of it:
 - Starting with an **U-** as a NeosVR User Id
