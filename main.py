@@ -56,16 +56,16 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     neos_username = Column(Text, unique=True, nullable=False)
-    discord_username = Column(Text, nullable=False)
+    discord_id = Column(Text, nullable=False)
     verifier = Column(Text, nullable=False)
     verified_date = Column(DateTime, default=datetime.utcnow)
 
     def __init__(
-            self, neos_username, discord_username, verifier,
+            self, neos_username, discord_id, verifier,
             verified_date = None
     ):
         self.neos_username = neos_username
-        self.discord_username = discord_username
+        self.discord_id = discord_id
         self.verifier = verifier
         if verified_date:
             self.verified_date = verified_date
@@ -85,13 +85,15 @@ def user_exist(username):
     if username.startswith('U-'):
         neos_users = session.query(User).filter(User.neos_username == username)
     else:
-        neos_users = session.query(User).filter(User.discord_username == username)
+        neos_users = session.query(User).filter(User.discord_id == username)
     return bool(
         neos_users.count()
     )
 
 def log_action(inter, username, action):
-        usage_logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
+    if isinstance(username, list):
+        username = f"{username[0]}(@{username[1]})"
+    usage_logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
 
 def send_cmd(cmd):
     client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', cmd)
@@ -143,7 +145,15 @@ class AccessList(commands.Cog):
         elif all(x not in discord_username for x in ('@', '#')):
             await inter.response.send_message("The discord username must also have the discord tag!")
             return
-        neos_username = neos_username.replace(' ', '-')
+        guild_members = inter.guild.members
+        if '#' in discord_username:
+            for member in guild_members:
+                if f"{member.name}#{member.discriminator}" == discord_username:
+                    discord_username = str(member.id)
+        elif discord_username.startswith('@'):
+            discord_username = discord_username.replace('@', '')
+        else:
+            neos_username = neos_username.replace(' ', '-') # Automaticly replace all space for dash like neos
         if not user_exist(neos_username):
             try:
                 cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {neos_username} true'
@@ -178,15 +188,35 @@ class AccessList(commands.Cog):
         name='remove',
         description='Removes an user, by `U-` neos or discord username from the cloud variable')
     async def remove(self, inter, username: str = commands.Param(autocomplete=autocomp_members)):
-        log_action(inter, username, 'remove')
         if all(x not in username for x in ('U-', '#', '@')):
             await inter.response.send_message(
                 "The username must either start with U- for neos or contains the discord hashtag number for discord one")
             return
-        if username.startswith('U-'):
-            username = username.replace(' ', '-')
+        username_str = username
+        guild_members = inter.guild.members
+        if '#' in username:
+            for member in guild_members:
+                if f"{member.name}#{member.discriminator}" == username:
+                    username_name = username
+                    username = str(member.id)
+            log_action(inter, [username_name, username], 'remove')
+        elif username.startswith('@'):
+            username = username.replace('@', '', 1)
+            for member in guild_members:
+                if username == str(member.id):
+                    username_str = f"{member.name}#{member.discriminator}"
+            log_action(inter, [username_str, username], 'remove')
         else:
-            username = session.query(User).filter(User.discord_username == username)[0].neos_username
+            username = username.replace(' ', '-') # Automaticly replace all space for dash like neos
+            log_action(inter, username, 'remove')
+        if not username.startswith('U-'):
+            neos_user = session.query(User).filter(User.discord_id == username)
+            if neos_user.count():
+                username = neos_user[0].neos_username
+            else:
+                message = (f'User {username_str} already removed from the accesslist\n')
+                await inter.response.send_message(message)
+                return
         try:
             cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {username} false'
             cloud_var = send_cmd(cmd)
@@ -209,12 +239,12 @@ class AccessList(commands.Cog):
             if username.startswith('U-'):
                 neos_user = session.query(User).filter(User.neos_username == username)[0]
             else:
-                neos_user = session.query(User).filter(User.discord_username == username)[0]
+                neos_user = session.query(User).filter(User.discord_id == username)[0]
             session.delete(neos_user)
             session.commit()
             await inter.response.send_message(message)
         else:
-            message = (f'User {username} already removed from the accesslist\n')
+            message = (f'User {username_str} already removed from the accesslist\n')
             await inter.response.send_message(message)
 
     @accesslist.sub_command(
@@ -229,15 +259,18 @@ class AccessList(commands.Cog):
         log_action(inter, username, 'search')
         if type == 'verifier':
             if all(x not in username for x in ('#', '@')):
-                await inter.response.send_message("A discord username must contains the hashtag number or start with an @")
+                await inter.response.send_message(
+                    "When searching for a verifier either:\n"
+                    "- Use a discord username who must contain the hashtag number\n"
+                    "- Use the discord id who must start with @")
                 return
             if '#' in username:
                 guild_members = inter.guild.members
                 for member in guild_members:
                     if f"{member.name}#{member.discriminator}" == username:
-                        username = member.id
+                        username = str(member.id)
             elif username.startswith('@'):
-                username = username.replace('@', '')
+                username = username.replace('@', '', 1)
             neos_users = session.query(User).filter(User.verifier == username)
             if neos_users:
                 users = "".join([f" - {user}\n" for user in neos_users])
@@ -249,22 +282,32 @@ class AccessList(commands.Cog):
                 formated_text = f"{username} have not yet accepted users"
             await inter.response.send_message(formated_text)
         else:
-            if username.startswith('-U'):
-                username = username.replace(' ', '-')
+            guild_members = inter.guild.members
+            if '#' in username:
+                for member in guild_members:
+                    if f"{member.name}#{member.discriminator}" == username:
+                        username = str(member.id)
+            elif username.startswith('@'):
+                username = username.replace('@', '', 1)
             if user_exist(username):
                 if username.startswith('U-'):
                     neos_user = session.query(User).filter(User.neos_username == username)[0]
                 else:
-                    neos_user = session.query(User).filter(User.discord_username == username)[0]
+                    neos_user = session.query(User).filter(User.discord_id == username)[0]
                     username = neos_user.neos_username
                 try:
                     cloud_var = send_cmd(f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}')
                 except ValueError as exc:
                     cloud_var = exc
+                for member in guild_members:
+                    if str(member.id) == neos_user.discord_id:
+                        neos_discord_username = f"{member.name}#{member.discriminator}"
+                    if str(member.id) == neos_user.verifier:
+                        verifier_discord_username = f"{member.name}#{member.discriminator}"
                 formated_text = (
                     f"**Neos U- username:** {neos_user.neos_username}\n"
-                    f"**Discord username:** {neos_user.discord_username}\n"
-                    f"**Verifier discord username:** {neos_user.verifier}\n"
+                    f"**Discord username:** <@{neos_user.discord_id}> ({neos_discord_username} - @{neos_user.discord_id})\n"
+                    f"**Verifier discord username:** <@{neos_user.verifier}> (@{verifier_discord_username} - @{neos_user.verifier})\n"
                     f"**Verification date:** {neos_user.verified_date} ({neos_user.verified_date})\n"
                     f"**Cloud variable status:** {cloud_var}"
                 )
