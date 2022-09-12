@@ -243,7 +243,7 @@ class AccessList(commands.Cog):
             session.commit()
             await inter.response.send_message(message)
         else:
-            message = (f'User {username_str} already removed from the accesslist\n')
+            message = (f'User {username_str} removed from the accesslist\n')
             await inter.response.send_message(message)
 
     @accesslist.sub_command(
