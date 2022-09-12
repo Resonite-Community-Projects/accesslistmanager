@@ -48,6 +48,3 @@ The bot should be registered under the slash command `accesslist` and have the 3
 - Starting with an **U-** as a NeosVR User Id
 - Starting with an **@** as a Discord User Id
 -  Containing a **#** in the middle as a Discord Username following by his discriminator (or tag)
-
-**NOTE:** This will be updated if needed, you can also check the source code here: https://github.com/USFN-Neos/accesslistmanager (See with skywind for having an authorization to have access, its possible to add access only for this repository)
-Don't hesitate to contribute directly to it and if you have any problem with it just contact me.
