@@ -321,7 +321,7 @@ class AccessList(commands.Cog):
                 try:
                     cmd = f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}'
                     cloud_var = send_cmd(cmd)
-                    if "Value:" not in cloud_var:
+                    if all(x not in cloud_var for x in ('Value:', 'Variable not set!')):
                         am_logger.error(cmd)
                         am_logger.error(cloud_var)
                         message = (
@@ -343,7 +343,7 @@ class AccessList(commands.Cog):
                 try:
                     cmd = f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}'
                     cloud_var = send_cmd(cmd)
-                    if "Value:" not in cloud_var:
+                    if all(x not in cloud_var for x in ('Value:', 'Variable not set!')):
                         am_logger.error(cmd)
                         am_logger.error(cloud_var)
                         message = (
