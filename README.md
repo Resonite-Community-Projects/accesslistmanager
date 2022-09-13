@@ -14,9 +14,11 @@ pip install -r requirements.txt
 ### Configuration
 
 Fill in the `config.py` file the following information:
-- `NEOS_USERNAME`: neos username
-- `NEOS_PASSWORD`: neos password
-- `TOKEN`: discord bot token
+- `NEOS_USERNAME`: NeosVR `U-` ID
+- `NEOS_PASSWORD`: NeosVR password
+- `NEOS_VAR_GROUP`: NeosVR cloud variable group owner
+- `NEOS_VAR_PATH`: NeosVR cloud variable path/name
+- `DISCORD_BOT_TOKEN`: Discord bot token
 
 ### Usage
 

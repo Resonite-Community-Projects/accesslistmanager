@@ -20,7 +20,12 @@ from disnake.ext import commands
 from neos.client import Client
 from neos.classes import LoginDetails
 
-from config import DISCORD_BOT_TOKEN, NEOS_USERNAME, NEOS_PASSWORD
+from config import (
+    DISCORD_BOT_TOKEN,
+    NEOS_USERNAME, NEOS_PASSWORD,
+    NEOS_VAR_GROUP,
+    NEOS_VAR_PATH,
+)
 
 logging_format = '%(asctime)s %(levelname)s %(name)s %(message)s'
 logging_datefmt = '%Y-%m-%d %H:%M:%S'
@@ -47,7 +52,7 @@ am_logger.setLevel(logging.INFO)
 client = Client()
 
 client.login(
-    LoginDetails(username=NEOS_USERNAME, password=NEOS_PASSWORD)
+    LoginDetails(ownerId=NEOS_USERNAME, password=NEOS_PASSWORD)
 )
 
 
@@ -96,7 +101,7 @@ def log_action(inter, username, action):
     usage_logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
 
 def send_cmd(cmd, second=False):
-    client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', cmd)
+    client.sendMessageLegacy(NEOS_USERNAME, 'U-Neos', cmd)
     msgs = client.getMessageLegacy(maxItems=10, user='U-Neos')
     try:
         cmd_index = next((i for (i, d) in enumerate(msgs) if d["content"] == cmd), None)
@@ -142,7 +147,7 @@ class AccessList(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.slash_command(description='Manage USFN AD accesslist')
+    @commands.slash_command(description='Manage accesslist')
     async def accesslist(self, inter):
         pass
 
@@ -165,7 +170,7 @@ class AccessList(commands.Cog):
         neos_username = neos_username.replace(' ', '-') # Automaticly replace all space for dash like neos
         if not user_exist(neos_username):
             try:
-                cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {neos_username} true'
+                cmd = f'/setGroupVarValue {NEOS_VAR_GROUP} {NEOS_VAR_PATH} {neos_username} true'
                 cloud_var = send_cmd(cmd)
                 if cloud_var == 'Variable set!':
                     message = f'User {neos_username} added to the accesslist'
@@ -227,7 +232,7 @@ class AccessList(commands.Cog):
                 await inter.response.send_message(message)
                 return
         try:
-            cmd = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess {username} false'
+            cmd = f'/setGroupVarValue {NEOS_VAR_GROUP} {NEOS_VAR_PATH} {username} false'
             cloud_var = send_cmd(cmd)
             if cloud_var == 'Variable set!':
                 message = f'User {username} removed from the accesstlist'
@@ -319,7 +324,7 @@ class AccessList(commands.Cog):
                     if str(member.id) == neos_user.verifier:
                         verifier_discord_username = f"{member.name}#{member.discriminator}"
                 try:
-                    cmd = f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}'
+                    cmd = f'/getGroupVarValue {NEOS_VAR_GROUP} {NEOS_VAR_PATH} {username}'
                     cloud_var = send_cmd(cmd)
                     if all(x not in cloud_var for x in ('Value:', 'Variable not set!')):
                         am_logger.error(cmd)
