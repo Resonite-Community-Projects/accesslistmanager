@@ -1,4 +1,6 @@
-# AccessList Manager
+# NeosVR Sessions CloudVariable AccessList Manager
+
+Discord bot for managing NeosVR sessions access via cloud variable.
 
 ## Installation
 
