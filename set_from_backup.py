@@ -6,12 +6,17 @@ from pathlib import Path
 from neos.client import Client
 from neos.classes import LoginDetails
 
-from config import NEOS_USERNAME, NEOS_PASSWORD
+from config import (
+    DISCORD_BOT_TOKEN,
+    NEOS_USERNAME, NEOS_PASSWORD,
+    NEOS_VAR_GROUP,
+    NEOS_VAR_PATH,
+)
 
 client = Client()
 
 client.login(
-    LoginDetails(username=NEOS_USERNAME, password=NEOS_PASSWORD)
+    LoginDetails(ownerId=NEOS_USERNAME, password=NEOS_PASSWORD)
 )
 
 contacts_json = Path("contacts.json")
@@ -49,9 +54,9 @@ for (pos, (friend, updated)) in enumerate(friends_list.items()):
         continue
     if not updated:
         print(f"Set contact {friend} [{pos}/{total}]")
-        msg = f'/setGroupVarValue G-United-Space-Force-N orion.userAccess "{friend}" true'
+        msg = f'/setGroupVarValue {NEOS_VAR_GROUP} {NEOS_VAR_PATH} "{friend}" true'
         try:
-            client.sendMessageLegacy('U-USFN-Orion', 'U-Neos', msg)
+            client.sendMessageLegacy(NEOS_USERNAME, 'U-Neos', msg)
         except Exception as exc:
             write_contacts(friends_list)
             raise exc
