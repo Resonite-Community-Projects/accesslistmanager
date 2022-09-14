@@ -19,6 +19,7 @@ from disnake.ext import commands
 
 from neos.client import Client
 from neos.classes import LoginDetails
+from neos.exceptions import NeosAPIException
 
 from config import (
     DISCORD_BOT_TOKEN,
@@ -26,6 +27,8 @@ from config import (
     NEOS_VAR_GROUP,
     NEOS_VAR_PATH,
 )
+
+NEOS_VAR_GROUP = NEOS_VAR_GROUP[:22]
 
 logging_format = '%(asctime)s %(levelname)s %(name)s %(message)s'
 logging_datefmt = '%Y-%m-%d %H:%M:%S'
@@ -100,27 +103,19 @@ def log_action(inter, username, action):
         username = f"{username[0]}(@{username[1]})"
     usage_logger.warning(f'[{inter.guild.name}:{inter.guild.id}] [{inter.channel.name}:{inter.channel.id}] [{inter.author.display_name}:{inter.author.name}] - {action} {username}')
 
-def send_cmd(cmd, second=False):
-    client.sendMessageLegacy(NEOS_USERNAME, 'U-Neos', cmd)
-    msgs = client.getMessageLegacy(maxItems=10, user='U-Neos')
+def getCloudVar(username, path):
     try:
-        cmd_index = next((i for (i, d) in enumerate(msgs) if d["content"] == cmd), None)
-        try:
-            resp_index = cmd_index - 1
-        except TypeError as exc:
-            if not second:
-                return send_cmd(cmd)
-            else:
-                raise exc
-        return msgs[resp_index]['content']
-    except (TypeError, IndexError) as exc:
-        print('Command user:')
-        print(cmd)
-        print('Last messages from U-Neos:')
-        for msg in msgs:
-            print(msg['sendTime'], msg['content'])
-        print(traceback.format_exc())
-        raise ValueError('Something is wrong with the neos API, check the bot logs')
+        cloud_var = client.getCloudVar(username, path)
+        if cloud_var['timestamp'] == '0001-01-01T00:00:00+00:00':
+            cloud_var_value = "Value never set!"
+        else:
+            cloud_var_value = cloud_var['value']
+    except NeosAPIException as exc:
+        if exc.json['title'] == 'Not Found':
+            cloud_var_value = f'{path} cloud variable doesnt exist.'
+        else:
+            cloud_var_value = exc
+    return cloud_var_value
 
 async def autocomp_members(inter: disnake.ApplicationCommandInteraction, user_input: str):
     if user_input.startswith('U-'):
@@ -170,21 +165,14 @@ class AccessList(commands.Cog):
         neos_username = neos_username.replace(' ', '-') # Automaticly replace all space for dash like neos
         if not user_exist(neos_username):
             try:
-                cmd = f'/setGroupVarValue {NEOS_VAR_GROUP} {NEOS_VAR_PATH} {neos_username} true'
-                cloud_var = send_cmd(cmd)
-                if cloud_var == 'Variable set!':
-                    message = f'User {neos_username} added to the accesslist'
-                else:
-                    am_logger.error(cmd)
-                    am_logger.error(cloud_var)
-                    message = (
-                        "Error when setting the cloud variable:\n"
-                        f"{cloud_var}"
-                    )
-                    await inter.response.send_message(message)
-                    return
-            except ValueError:
-                message = 'Something is wrong, check logs'
+                client.setCloudVar(neos_username, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}", True)
+                message = f'User {neos_username} added to the accesslist'
+            except NeosAPIException as exc:
+                am_logger.error(traceback.format_exc())
+                await inter.response.send_message(
+                    "Error when setting the cloud variable, check logs"
+                )
+                return
             session.add(
                 User(
                     neos_username,
@@ -232,22 +220,13 @@ class AccessList(commands.Cog):
                 await inter.response.send_message(message)
                 return
         try:
-            cmd = f'/setGroupVarValue {NEOS_VAR_GROUP} {NEOS_VAR_PATH} {username} false'
-            cloud_var = send_cmd(cmd)
-            if cloud_var == 'Variable set!':
-                message = f'User {username} removed from the accesstlist'
-            else:
-                am_logger.error(cmd)
-                am_logger.error(cloud_var)
-                message = (
-                    "Error when setting the cloud variable:\n"
-                    f"{cloud_var}"
-                )
-                await inter.response.send_message(message)
-                return
-        except ValueError:
-            message = 'Something is wrong, check logs'
-            await inter.response.send_message(message)
+            client.setCloudVar(username, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}", False)
+            message = f'User {username} removed to the accesslist'
+        except NeosAPIException as exc:
+            am_logger.error(traceback.format_exc())
+            await inter.response.send_message(
+                "Error when setting the cloud variable, check the logs"
+            )
             return
         if user_exist(username):
             if username.startswith('U-'):
@@ -323,47 +302,21 @@ class AccessList(commands.Cog):
                         neos_discord_username = f"{member.name}#{member.discriminator}"
                     if str(member.id) == neos_user.verifier:
                         verifier_discord_username = f"{member.name}#{member.discriminator}"
-                try:
-                    cmd = f'/getGroupVarValue {NEOS_VAR_GROUP} {NEOS_VAR_PATH} {username}'
-                    cloud_var = send_cmd(cmd)
-                    if all(x not in cloud_var for x in ('Value:', 'Variable not set!')):
-                        am_logger.error(cmd)
-                        am_logger.error(cloud_var)
-                        message = (
-                        "Error when getting the cloud variable:\n"
-                            f"{cmd}"
-                        )
-                        await inter.response.send_message(message)
-                        return
-                except ValueError as exc:
-                    cloud_var = exc
+                cloud_var_value = getCloudVar(username, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}")
                 formated_text = (
                     f"**Neos U- username:** {neos_user.neos_username}\n"
                     f"**Discord username:** <@{neos_user.discord_id}> ({neos_discord_username})\n"
                     f"**Verifier discord username:** <@{neos_user.verifier}> ({verifier_discord_username})\n"
                     f"**Verification date:** {neos_user.verified_date} ({neos_user.verified_date})\n"
-                    f"**Cloud variable status:** {cloud_var}"
+                    f"**Cloud variable status:** {cloud_var_value}"
                 )
             elif username.startswith('U-'):
-                try:
-                    cmd = f'/getGroupVarValue G-United-Space-Force-N orion.userAccess {username}'
-                    cloud_var = send_cmd(cmd)
-                    if all(x not in cloud_var for x in ('Value:', 'Variable not set!')):
-                        am_logger.error(cmd)
-                        am_logger.error(cloud_var)
-                        message = (
-                        "Error when getting the cloud variable:\n"
-                            f"{cmd}"
-                        )
-                        await inter.response.send_message(message)
-                        return
-                except ValueError as exc:
-                    cloud_var = exc
+                cloud_var_value = getCloudVar(username, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}")
                 formated_text = (
                     f"**Neos U- username:** {username}\n"
-                    f"**Cloud variable status:** {cloud_var}"
+                    f"**Cloud variable status:** {cloud_var_value}"
                 )
-                if 'true' in cloud_var:
+                if 'true' in cloud_var_value:
                     formated_text += '\n**WARNING**: Cloud variable set to true but user is not in the database!'
             else:
                 formated_text = (

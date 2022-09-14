@@ -1,3 +1,3 @@
 disnake
 SQLAlchemy
-git+https://github.com/brodokk/neos.py@e587a67bc112d50b081380840fe37429eeca8078
+git+https://github.com/brodokk/neos.py@2f528e06c1e588b10a010da32fcda553e5ef3ff1
