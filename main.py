@@ -117,6 +117,17 @@ def getCloudVar(username, path):
             cloud_var_value = exc
     return cloud_var_value
 
+def setCloudVar(username, path, value):
+    try:
+        client.setCloudVar(username, path, value)
+    except NeosAPIException as exc:
+        if 'Invalid OwnerID' in str(exc):
+            message = f"{username} not found"
+        else:
+            am_logger.error(traceback.format_exc())
+            message = "Error when setting the cloud variable, check the logs"
+        raise ValueError(message)
+
 async def autocomp_members(inter: disnake.ApplicationCommandInteraction, user_input: str):
     if user_input.startswith('U-'):
         members = session.query(User).filter(User.neos_username.startswith(user_input)).all()
@@ -165,13 +176,11 @@ class AccessList(commands.Cog):
         neos_username = neos_username.replace(' ', '-') # Automaticly replace all space for dash like neos
         if not user_exist(neos_username):
             try:
-                client.setCloudVar(neos_username, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}", True)
-                message = f'User {neos_username} added to the accesslist'
-            except NeosAPIException as exc:
-                am_logger.error(traceback.format_exc())
-                await inter.response.send_message(
-                    "Error when setting the cloud variable, check logs"
+                setCloudVar(
+                    neos_username, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}", True
                 )
+            except ValueError as exc:
+                await inter.response.send_message(exc)
                 return
             session.add(
                 User(
@@ -181,7 +190,9 @@ class AccessList(commands.Cog):
                 )
             )
             session.commit()
-            await inter.response.send_message(message)
+            await inter.response.send_message(
+                f'User {neos_username} added to the accesslist'
+            )
         else:
             message = f'User {neos_username} already added to the accesstlist'
             await inter.response.send_message(message)
@@ -220,13 +231,11 @@ class AccessList(commands.Cog):
                 await inter.response.send_message(message)
                 return
         try:
-            client.setCloudVar(username, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}", False)
-            message = f'User {username} removed to the accesslist'
-        except NeosAPIException as exc:
-            am_logger.error(traceback.format_exc())
-            await inter.response.send_message(
-                "Error when setting the cloud variable, check the logs"
+            setCloudVar(
+                username_str, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}", False
             )
+        except ValueError as exc:
+            await inter.response.send_message(exc)
             return
         if user_exist(username):
             if username.startswith('U-'):
@@ -235,10 +244,13 @@ class AccessList(commands.Cog):
                 neos_user = session.query(User).filter(User.discord_id == username)[0]
             session.delete(neos_user)
             session.commit()
-            await inter.response.send_message(message)
+            await inter.response.send_message(
+                f'User {username_str} removed to the accesslist'
+            )
         else:
-            message = (f'User {username_str} removed from the accesslist\n')
-            await inter.response.send_message(message)
+            await inter.response.send_message(
+                f'User {username_str} removed from the accesslist'
+            )
 
     @accesslist.sub_command(
         name='search',
