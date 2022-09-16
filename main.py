@@ -19,7 +19,7 @@ from disnake.ext import commands
 
 from neos.client import Client
 from neos.classes import LoginDetails
-from neos.exceptions import NeosAPIException
+from neos.exceptions import NeosAPIException, InvalidToken
 
 from config import (
     DISCORD_BOT_TOKEN,
@@ -54,9 +54,11 @@ am_logger.setLevel(logging.INFO)
 
 client = Client()
 
-client.login(
-    LoginDetails(ownerId=NEOS_USERNAME, password=NEOS_PASSWORD)
-)
+def login():
+    client.login(
+        LoginDetails(ownerId=NEOS_USERNAME, password=NEOS_PASSWORD)
+    )
+login()
 
 
 class User(Base):
@@ -105,7 +107,11 @@ def log_action(inter, username, action):
 
 def getCloudVar(username, path):
     try:
-        cloud_var = client.getCloudVar(username, path)
+        try:
+            cloud_var = client.getCloudVar(username, path)
+        except InvalidToken:
+            login()
+            cloud_var = client.getCloudVar(username, path)
         if cloud_var['timestamp'] == '0001-01-01T00:00:00+00:00':
             cloud_var_value = "Value never set!"
         else:
@@ -119,7 +125,11 @@ def getCloudVar(username, path):
 
 def setCloudVar(username, path, value):
     try:
-        client.setCloudVar(username, path, value)
+        try:
+            client.setCloudVar(username, path, value)
+        except InvalidToken:
+            login()
+            client.setCloudVar(username, path, value)
     except NeosAPIException as exc:
         if 'Invalid OwnerID' in str(exc):
             message = f"{username} not found"
@@ -337,6 +347,45 @@ class AccessList(commands.Cog):
                 )
             await inter.response.send_message(formated_text)
 
+    @accesslist.sub_command(
+        name='setup',
+        description='command to update the database with the old value, ignore me, will be deleted when done')
+    async def search(self, inter):
+        #friends = client.getFriends()
+
+        #total = len(friends) - 1
+        #for pos, friend in enumerate(friends):
+        #    if not user_exist(friend.id):
+        #        if friend.id == 'U-Neos':
+        #            continue
+        #        print(friend.id)
+        #        session.add(
+        #            User(
+        #                friend.id,
+        #                friend.id,
+        #                "Skywind Kitsune#1113",
+        #            )
+        #        )
+        #for channel in inter.guild.channels:
+        #    if channel.name == 'general':
+        #        channel_id = channel.id
+        # WARNING THIS GO TO THE RECORD CHANNEL I DONT HAVE ACCESS YET
+        channel_id = 946802875168854026
+        channel = inter.guild.get_channel(channel_id)
+        msgs = await channel.history(limit=None).flatten()
+        print(len(msgs))
+        list_msgs = []
+        for msg in msgs:
+            data = {}
+            data['author'] = msg.author.name + "#" + msg.author.discriminator
+            data['message'] = msg.content
+            data['date'] = msg.created_at.isoformat()
+            list_msgs.append(data)
+        import json
+        with open('msg_records', 'w') as f:
+            json.dump(list_msgs, f)
+        print('done')
+
 am_logger.info('Starting access manager')
 
 intents = disnake.Intents.all()
@@ -347,4 +396,22 @@ async def on_ready():
     am_logger.info("Access manager discord bot is ready!")
 
 bot.add_cog(AccessList(bot))
+
+@bot.slash_command(description='Search a NeosVR user per username')
+async def searchuser(inter, username: str):
+    try:
+        users = client.searchUser(username)
+    except InvalidToken:
+        login()
+        users = client.searchUser(username)
+    if users:
+        users = "".join([f" - {user['id']} ({user['username']})\n" for user in users])
+        formated_text = (
+            f"Here is the following users corresponding to the search `{username}`:\n"
+            f"{users}"
+        )
+    else:
+        formated_text = f'Nothing found for the search `{username}`'
+    await inter.response.send_message(formated_text)
+
 bot.run(DISCORD_BOT_TOKEN)
