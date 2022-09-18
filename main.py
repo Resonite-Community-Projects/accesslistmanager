@@ -55,6 +55,8 @@ am_logger.setLevel(logging.INFO)
 client = Client()
 
 def login():
+    if client.token:
+        client.clean_session()
     client.login(
         LoginDetails(ownerId=NEOS_USERNAME, password=NEOS_PASSWORD)
     )
