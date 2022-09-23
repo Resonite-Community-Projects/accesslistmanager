@@ -40,7 +40,12 @@ to the cloud variable `orion.userAccess`.
 
 ## Discord Usage
 
-The bot should be registered under the slash command `accesslist` and have the 3 following sub commands:
+When the bot is registered two slash commands become available. `accesslist` is the main command and is used to manage the NeosVR contact of the cloud variable. `usersearch` is a utility command that can be used to search for NeosVR Username in the objectif to use the NeosVR User Id for using afterward in the `accesslist` command.
+
+### accesslist slash command
+
+This `accesslist` slash command give the possibility to manage a cloud variable to control access.
+There is 3 sub commands available:
 
 - **add** This sub command give you the possibility to add a user to the cloud variable. Two parameters are available and mandatory, `neos_username` and `discord_username`. The `discord_username` parameter will give you a hint and return all the discord tag of the user available in the discord server. You can also "force" a Discord User Id with `@` following of the ID. In the end the Discord User Id will be saved in the database.
 
@@ -54,3 +59,7 @@ The bot should be registered under the slash command `accesslist` and have the 3
 - Starting with an **U-** as a NeosVR User Id
 - Starting with an **@** as a Discord User Id
 - Containing a **#** in the middle as a Discord Username following by his discriminator (or tag)
+
+### usersearch slash command
+
+This `usersearch` slash command give the possibility to lookup an NeosVR User Id via providing a NeosVR Username as a parameter.
