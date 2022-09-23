@@ -1,6 +1,8 @@
 # NeosVR Sessions CloudVariable AccessList Manager
 
 Discord bot for managing NeosVR sessions access via cloud variable.
+While its mainly developed for controlling a cloud variable for control a cloud variable
+it could be also used in other usage too.
 
 ## Installation
 
