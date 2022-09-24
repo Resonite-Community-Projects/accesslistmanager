@@ -370,6 +370,11 @@ class SearchUser(commands.Cog):
             )
         else:
             formated_text = f'Nothing found for the search `{username}`.'
+            if username.startswith('U-'):
+                formated_text += (
+                    " The username researched start with `U-`,"
+                    " this looks like a NeosVR User Id and not a NeosVR Username."
+                )
         await inter.response.send_message(formated_text)
 
 
