@@ -349,45 +349,6 @@ class AccessList(commands.Cog):
                 )
             await inter.response.send_message(formated_text)
 
-    @accesslist.sub_command(
-        name='setup',
-        description='command to update the database with the old value, ignore me, will be deleted when done')
-    async def search(self, inter):
-        #friends = client.getFriends()
-
-        #total = len(friends) - 1
-        #for pos, friend in enumerate(friends):
-        #    if not user_exist(friend.id):
-        #        if friend.id == 'U-Neos':
-        #            continue
-        #        print(friend.id)
-        #        session.add(
-        #            User(
-        #                friend.id,
-        #                friend.id,
-        #                "Skywind Kitsune#1113",
-        #            )
-        #        )
-        #for channel in inter.guild.channels:
-        #    if channel.name == 'general':
-        #        channel_id = channel.id
-        # WARNING THIS GO TO THE RECORD CHANNEL I DONT HAVE ACCESS YET
-        channel_id = 946802875168854026
-        channel = inter.guild.get_channel(channel_id)
-        msgs = await channel.history(limit=None).flatten()
-        print(len(msgs))
-        list_msgs = []
-        for msg in msgs:
-            data = {}
-            data['author'] = msg.author.name + "#" + msg.author.discriminator
-            data['message'] = msg.content
-            data['date'] = msg.created_at.isoformat()
-            list_msgs.append(data)
-        import json
-        with open('msg_records', 'w') as f:
-            json.dump(list_msgs, f)
-        print('done')
-
 am_logger.info('Starting access manager')
 
 intents = disnake.Intents.all()
