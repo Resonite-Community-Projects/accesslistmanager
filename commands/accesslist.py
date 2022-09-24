@@ -266,5 +266,6 @@ class AccessList(commands.Cog):
                 message = f"{username} not found"
             else:
                 am_logger.error(traceback.format_exc())
+                am_logger.error(f"Trying to set cloud variable `{path}` for `{username}` with `{value}`")
                 message = "Error when setting the cloud variable, check the logs"
             raise ValueError(message)
