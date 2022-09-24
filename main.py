@@ -349,6 +349,30 @@ class AccessList(commands.Cog):
                 )
             await inter.response.send_message(formated_text)
 
+
+class SearchUser(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot = bot
+
+    @commands.slash_command(description='Search a NeosVR user per username')
+    async def searchuser(inter, username: str):
+        try:
+            users = client.searchUser(username)
+        except InvalidToken:
+            login()
+            users = client.searchUser(username)
+        if users:
+            users = "".join([f" - {user['id']} ({user['username']})\n" for user in users])
+            formated_text = (
+                f"Here is the following users corresponding to the search `{username}`:\n"
+                f"{users}"
+            )
+        else:
+            formated_text = f'Nothing found for the search `{username}`.'
+        await inter.response.send_message(formated_text)
+
+
 am_logger.info('Starting access manager')
 
 intents = disnake.Intents.all()
@@ -359,22 +383,6 @@ async def on_ready():
     am_logger.info("Access manager discord bot is ready!")
 
 bot.add_cog(AccessList(bot))
-
-@bot.slash_command(description='Search a NeosVR user per username')
-async def searchuser(inter, username: str):
-    try:
-        users = client.searchUser(username)
-    except InvalidToken:
-        login()
-        users = client.searchUser(username)
-    if users:
-        users = "".join([f" - {user['id']} ({user['username']})\n" for user in users])
-        formated_text = (
-            f"Here is the following users corresponding to the search `{username}`:\n"
-            f"{users}"
-        )
-    else:
-        formated_text = f'Nothing found for the search `{username}`'
-    await inter.response.send_message(formated_text)
+bot.add_cog(SearchUser(bot))
 
 bot.run(DISCORD_BOT_TOKEN)
