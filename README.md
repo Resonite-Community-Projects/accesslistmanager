@@ -65,3 +65,10 @@ There is 3 sub commands available:
 ### usersearch slash command
 
 This `usersearch` slash command give the possibility to lookup an NeosVR User Id via providing a NeosVR Username as a parameter.
+
+## Modularity
+
+You can add your own discord command as a module in the `commands` folder. You need to
+at least create one Disnake Cog class and add it in the `__init__.py` file of the `commands` folder.
+By default the database sqlalchemy session and the neos client are passed as the second
+and third parameter. Check the class `commands.searchuser.SearchUser` as an example.
