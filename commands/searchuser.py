@@ -1,5 +1,6 @@
 from disnake.ext import commands
 
+from neos.exceptions import InvalidToken
 
 class SearchUser(commands.Cog):
 
