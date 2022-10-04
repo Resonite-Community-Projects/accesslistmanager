@@ -11,11 +11,11 @@ import disnake
 from neos.client import Client
 from neos.exceptions import InvalidToken, NeosAPIException
 
-import commands
-from config import DISCORD_BOT_TOKEN
-from logger import am_logger, usage_logger
-from models import Base, Session, engine
-from utils import login
+from accesslistmanager.config import DISCORD_BOT_TOKEN
+from accesslistmanager.logger import am_logger, usage_logger
+from accesslistmanager.models import Base, Session, engine
+from accesslistmanager.utils import login
+from accesslistmanager import commands
 
 neos_client = Client()
 db_session = Session()
@@ -37,4 +37,5 @@ for name, obj in inspect.getmembers(commands):
     if inspect.isclass(obj):
         bot.add_cog(obj(bot, db_session, neos_client))
 
-bot.run(DISCORD_BOT_TOKEN)
+def main():
+    bot.run(DISCORD_BOT_TOKEN)

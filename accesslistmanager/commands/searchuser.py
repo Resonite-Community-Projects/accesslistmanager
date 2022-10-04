@@ -2,6 +2,8 @@ from disnake.ext import commands
 
 from neos.exceptions import InvalidToken
 
+from accesslistmanager.utils import login
+
 class SearchUser(commands.Cog):
 
     def __init__(self, bot, db_session, neos_client):

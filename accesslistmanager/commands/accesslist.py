@@ -1,12 +1,14 @@
 import traceback
 
 import disnake
-from config import NEOS_PASSWORD, NEOS_USERNAME, NEOS_VAR_GROUP, NEOS_VAR_PATH
 from disnake.ext import commands
-from logger import am_logger, usage_logger
-from models import Session, User
 from neos.classes import LoginDetails
 from neos.exceptions import InvalidToken, NeosAPIException
+
+from accesslistmanager.config import NEOS_PASSWORD, NEOS_USERNAME, NEOS_VAR_GROUP, NEOS_VAR_PATH
+from accesslistmanager.logger import am_logger, usage_logger
+from accesslistmanager.models import Session, User
+from accesslistmanager.utils import login
 
 db_session = Session()
 

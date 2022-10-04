@@ -4,7 +4,6 @@ services:
   accesslistbot:
     build: .
     volumes:
-      - "./config.py:/app/config.py"
-      - "./main.py:/app/main.py"
+      - "./accesslistmanager/config.py:/app/accesslistmanager/config.py"
       - "./accesslist.db:/app/accesslist.db"
       - "./access_manager.log:/app/access_manager.log"

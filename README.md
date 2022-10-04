@@ -6,13 +6,9 @@ it could be also used in other usage too.
 
 ## Installation
 
-## Requirements
-
-**Note:** Because of the discord bot library, disnake, the minimale version
-of this project is: 3.8
 
 ```
-pip install -r requirements.txt
+pip install .
 ```
 
 ### Configuration
@@ -27,13 +23,13 @@ Fill in the `config.py` file the following information:
 ### Usage
 
 ```
-python main.py
+accesslistmanager
 ```
 
 #### docker-compose usage
 
 If you want to use the docker-compose.yml you **must** first create **manually**
-the files: `access_manager.log` and `accesslist.db`
+the files: `access_manager.log` and `accesslist.db`.
 
 ## scripts
 

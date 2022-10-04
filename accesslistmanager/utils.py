@@ -1,6 +1,6 @@
 from neos.classes import LoginDetails
 
-from config import (
+from accesslistmanager.config import (
     NEOS_USERNAME, NEOS_PASSWORD,
 )
 
