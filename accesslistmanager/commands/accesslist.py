@@ -219,7 +219,7 @@ class AccessList(commands.Cog):
                     formated_text += '\n**WARNING**: Cloud variable set to true but user is not in the database!'
             else:
                 formated_text = (
-                    f"No discord user found for {username_name}.\n"
+                    f"No discord user found for {username}.\n"
                     "Use directly the U- user to directly check the value of the cloud variable."
                 )
             await inter.response.send_message(formated_text)
