@@ -16,7 +16,7 @@ class SearchUser(commands.Cog):
         try:
             users = self.neos_client.searchUser(username)
         except InvalidToken:
-            login()
+            login(self.neos_client)
             users = self.neos_client.searchUser(username)
         if users:
             users = "".join([f" - {user['id']} ({user['username']})\n" for user in users])

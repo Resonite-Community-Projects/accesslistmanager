@@ -243,7 +243,7 @@ class AccessList(commands.Cog):
             try:
                 cloud_var = self.neos_client.getCloudVar(username, path)
             except InvalidToken:
-                login()
+                login(self.neos_client)
                 cloud_var = self.neos_client.getCloudVar(username, path)
             if cloud_var['timestamp'] == '0001-01-01T00:00:00+00:00':
                 cloud_var_value = "Value never set!"
@@ -261,7 +261,7 @@ class AccessList(commands.Cog):
             try:
                 self.neos_client.setCloudVar(username, path, value)
             except InvalidToken:
-                login()
+                login(self.neos_client)
                 self.neos_client.setCloudVar(username, path, value)
         except NeosAPIException as exc:
             if 'Invalid OwnerID' in str(exc):
