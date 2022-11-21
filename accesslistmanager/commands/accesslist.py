@@ -54,12 +54,10 @@ class AccessList(commands.Cog):
             await inter.response.send_message("The discord username must be either a discord name + discrininator or an id starting with `@`")
             return
         guild_members = inter.guild.members
-        if '#' in discord_username:
-            for member in guild_members:
-                if f"{member.name}#{member.discriminator}" == discord_username:
-                    discord_username = str(member.id)
-        elif discord_username.startswith('@'):
-            discord_username = discord_username.replace('@', '')
+        for member in guild_members:
+            if discord_username == f"{member.name}#{member.discriminator}" or discord_username.replace('@', '') == str(member.id):
+                discord_id = str(member.id)
+                discord_handle = f"{member.name}#{member.discriminator}"
         neos_username = neos_username.replace(' ', '-') # Automaticly replace all space for dash like neos
         if not self._user_exist(neos_username):
             try:
@@ -72,11 +70,12 @@ class AccessList(commands.Cog):
             self.db_session.add(
                 User(
                     neos_username,
-                    discord_username,
+                    discord_id,
                     inter.user.id,
                 )
             )
             self.db_session.commit()
+            await self.update_channel(neos_username, discord_handle, discord_id, inter.user.id, f"{inter.user.name}#{inter.user.discriminator}", inter.guild.id)
             await inter.response.send_message(
                 f'User {neos_username} added to the accesslist'
             )
@@ -271,3 +270,25 @@ class AccessList(commands.Cog):
                 am_logger.error(f"Trying to set cloud variable `{path}` for `{username}` with `{value}`")
                 message = "Error when setting the cloud variable, check the logs"
             raise ValueError(message)
+
+    #@accesslist.sub_command(name='test', description='test Adds a new users to the cloud variable')
+    #async def test(self, inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_discord_members)):
+    #    await self.update_channel(neos_username, discord_username, inter.user.id, inter.guild.id)
+
+    def log_format(self, neos_username, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle):
+        return f"User Discord: <@{discord_id}> ({discord_handle}) | User NeosVR: {neos_user_id} ({neos_username}) | Verifier Discord: <@{verified_id}> ({verified_discord_handle})"
+
+    async def reset_channel(self):
+        pass
+
+    async def update_channel(self, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle, guild_id):
+        channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name="output")
+
+        try:
+            neos_user = self.neos_client.getUserData(neos_user_id)
+            neos_username = neos_user.username
+        except Exception as exc:
+            am_logger.error(traceback.format_exc())
+            neos_username = "<??>"
+
+        await channel.send(self.log_format(neos_username, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle))
