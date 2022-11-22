@@ -1,4 +1,6 @@
 import traceback
+import asyncio
+import time
 
 import disnake
 from disnake.ext import commands
@@ -275,11 +277,41 @@ class AccessList(commands.Cog):
     #async def test(self, inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_discord_members)):
     #    await self.update_channel(neos_username, discord_username, inter.user.id, inter.guild.id)
 
+    @accesslist.sub_command(name='resetlogs', description='Reset the log output channel and relog the content of the database')
+    async def resetlogs(self, inter):
+        await inter.response.send_message("Reset in progress... please be patient...")
+        await self.reset_channel(inter.guild.id)
+
     def log_format(self, neos_username, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle):
         return f"User Discord: <@{discord_id}> ({discord_handle}) | User NeosVR: {neos_user_id} ({neos_username}) | Verifier Discord: <@{verified_id}> ({verified_discord_handle})"
 
-    async def reset_channel(self):
-        pass
+    async def reset_channel(self, guild_id):
+        channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name="output")
+        async for msg in channel.history(limit=1000):
+            if msg.author.id == self.bot.application_id:
+                await msg.delete()
+                await asyncio.sleep(1.2)
+        users = self.db_session.query(User).all()
+        _users = []
+        for x in range(600):
+            _users.append(users[0])
+        users = _users
+        for user in users:
+            try:
+                neos_user = self.neos_client.getUserData(user.neos_username)
+                neos_username = neos_user.username
+            except Exception as exc:
+                am_logger.error(traceback.format_exc())
+                neos_username = "<??>"
+            discord_user = self.bot.get_user(int(user.discord_id))
+            verifier_user = self.bot.get_user(int(user.verifier))
+            channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name="output")
+            await channel.send(self.log_format(
+                neos_username, user.neos_username, f"{discord_user.name}#{discord_user.discriminator}",
+                user.discord_id, user.verifier, f"{verifier_user.name}#{verifier_user.discriminator}")
+            )
+            time.sleep(1)
+        print("Clean done")
 
     async def update_channel(self, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle, guild_id):
         channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name="output")
