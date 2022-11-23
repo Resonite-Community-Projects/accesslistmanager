@@ -19,6 +19,7 @@ Fill in the `config.py` file the following information:
 - `NEOS_VAR_GROUP`: NeosVR cloud variable group owner
 - `NEOS_VAR_PATH`: NeosVR cloud variable path/name
 - `DISCORD_BOT_TOKEN`: Discord bot token
+- `DISCORD_LOG_OUTPUT_CHANNEL`: The Discord channel where to output the logged users
 
 ### Usage
 
@@ -43,9 +44,9 @@ When the bot is registered two slash commands become available. `accesslist` is 
 ### accesslist slash command
 
 This `accesslist` slash command give the possibility to manage a cloud variable to control access.
-There is 3 sub commands available:
+Here is the sub commands available:
 
-- **add** This sub command give you the possibility to add a user to the cloud variable. Two parameters are available and mandatory, `neos_username` and `discord_username`. The `discord_username` parameter will give you a hint and return all the discord tag of the user available in the discord server. You can also "force" a Discord User Id with `@` following of the ID. In the end the Discord User Id will be saved in the database.
+- **add** This sub command give you the possibility to add a user to the cloud variable. Two parameters are available and mandatory, `neos_username` and `discord_username`. The `discord_username` parameter will give you a hint and return all the discord tag of the user available in the discord server. You can also "force" a Discord User Id with `@` following of the ID. In the end the Discord User Id will be saved in the database. Each time a user is added the bot will write in the record channel on Discord.
 
 - **remove** This sub command give you the possibility to  remove an user of the cloud variable. The parameter `username` support either a NeosVR User Id, a Discord User Id or a Discord Username following by his discriminator .  There is an hint who will give you a list of all the discord tag of user available either on discord or in the database (as `U-` in the last case). Only NeosVR User Id, `U-`, you will be able to remove it from the cloud variable while the user is not present in the bot database.
 
@@ -53,10 +54,13 @@ There is 3 sub commands available:
   The first one support either a NeosVR User Id, a Discord User Id or a Discord Username following by his discriminator .  There is an hint who will give you a list of all the discord tag of user available either on discord or in the database (as `U-` in the last case).  Only NeosVR User Id, `U-`, you will be able to remove it from the cloud variable while the user is not present in the bot database.
   The second one have tow possible value `User` or `Verifier` the first one will give your the information about the user while the second will give you the information about which user have been verified by the researched verifier.
 
+- **resetlogs**: This sub command give you the ability to reset the log channel. By default it will delete everthing written by the bot then rewrite everything he have in the database. There is an option `log` who is default to `True` for write the content of the database in the channel but it can be set to `False` for just empty every messages by the bot.
+
 **NOTE:** An username can start in 2 differents way **or** having an `#` in the middle of it:
 - Starting with an **U-** as a NeosVR User Id
 - Starting with an **@** as a Discord User Id
 - Containing a **#** in the middle as a Discord Username following by his discriminator (or tag)
+- The commands **add** and **resetlogs** WILL notif every verifier on the record channel. Its a good thing to tell them to mute the channel.
 
 ### usersearch slash command
 
