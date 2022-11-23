@@ -251,7 +251,11 @@ class AccessList(commands.Cog):
                 except Exception:
                     am_logger.error(traceback.format_exc())
                     neos_username = "<??>"
-                discord_user = self.bot.get_user(int(user.discord_id))
+                try:
+                    discord_user = self.bot.get_user(int(user.discord_id))
+                except Exception:
+                    am_logger.error(traceback.format_exc())
+                    discord_user = None
                 if discord_user:
                     discord_handle = f"{discord_user.name}#{discord_user.discriminator}"
                 else:
