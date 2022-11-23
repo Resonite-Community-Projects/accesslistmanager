@@ -51,10 +51,10 @@ class AccessList(commands.Cog):
         await inter.response.defer()
         self._log_action(inter, neos_username, 'add')
         if not neos_username.startswith('U-'):
-            await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
+            await self.msg_warning(inter, "Please be sure to precise the 'U-' before the neos username!")
             return
         elif all(x not in discord_username for x in ('@', '#')):
-            await inter.response.send_message("The discord username must be either a discord name + discrininator or an id starting with `@`")
+            await self.msg_warning(inter, "The discord username must be either a discord name + discrininator or an id starting with `@`")
             return
         guild_members = inter.guild.members
         for member in guild_members:
@@ -68,7 +68,7 @@ class AccessList(commands.Cog):
                     neos_username, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}", True
                 )
             except ValueError as exc:
-                await inter.response.send_message(exc)
+                await self.msg_error(inter, exc)
                 return
             self.db_session.add(
                 User(
@@ -82,14 +82,16 @@ class AccessList(commands.Cog):
             await self._update_channel(neos_username, discord_handle, discord_id, inter.user.id, f"{inter.user.name}#{inter.user.discriminator}", inter.guild.id)
             await self.msg_success(inter, f"User {neos_username} added to the accesslist")
         else:
-            await self.msg_success(inter, f"User {neos_username} already added to the accesslist")
+            await self.msg_info(inter, f"User {neos_username} already added to the accesslist")
 
     @accesslist.sub_command(
         name='remove',
         description='Removes an user from the cloud variable')
     async def remove(self, inter, username: str = commands.Param(autocomplete=autocomp_members)):
+        await inter.response.defer()
         if all(x not in username for x in ('U-', '#', '@')):
-            await inter.response.send_message(
+            await self.msg_warning(
+                inter,
                 "The username must either start with U- for neos or contains the discord hashtag number for discord one")
             return
         username_str = username
@@ -115,14 +117,14 @@ class AccessList(commands.Cog):
                 username = neos_user[0].neos_username
             else:
                 message = (f'User {username_str} already removed from the accesslist\n')
-                await inter.response.send_message(message)
+                await self.msg_info(inter, message)
                 return
         try:
             self._setCloudVar(
                 username_str, f"{NEOS_VAR_GROUP}.{NEOS_VAR_PATH}", False
             )
         except ValueError as exc:
-            await inter.response.send_message(exc)
+            await self.msg_error(inter, exc)
             return
         if self._user_exist(username):
             if username.startswith('U-'):
@@ -131,13 +133,10 @@ class AccessList(commands.Cog):
                 neos_user = self.db_session.query(User).filter(User.discord_id == username)[0]
             self.db_session.delete(neos_user)
             self.db_session.commit()
-            await inter.response.send_message(
-                f'User {username_str} removed to the accesslist'
-            )
-        else:
-            await inter.response.send_message(
-                f'User {username_str} removed from the accesslist'
-            )
+        await self.msg_success(
+            inter,
+            f'User {username_str} removed from the accesslist'
+        )
 
     @accesslist.sub_command(
         name='search',
@@ -148,10 +147,12 @@ class AccessList(commands.Cog):
             type: str = commands.Param(
                 choices={"User": "user", "Verifier": "verifier"})
         ):
+        await inter.response.defer()
         self._log_action(inter, username, 'search')
         if type == 'verifier':
             if all(x not in username for x in ('#', '@')):
-                await inter.response.send_message(
+                await self.msg_warning(
+                    inter,
                     "When searching for a verifier either:\n"
                     "- Use a discord username who must contain the hashtag number\n"
                     "- Use the discord id who must start with @")
@@ -174,7 +175,7 @@ class AccessList(commands.Cog):
                 )
             else:
                 formated_text = f"{username} have not yet accepted users"
-            await inter.response.send_message(formated_text)
+            await self.msg_info(inter, formated_text)
         else:
             guild_members = inter.guild.members
             if '#' in username:
@@ -222,7 +223,7 @@ class AccessList(commands.Cog):
                     f"No discord user found for {username}.\n"
                     "Use directly the U- user to directly check the value of the cloud variable."
                 )
-            await inter.response.send_message(formated_text)
+            await self.msg_info(inter, formated_text)
 
     @accesslist.sub_command(name='resetlogs', description='Reset the log output channel and relog the content of the database')
     async def resetlogs(self, inter, log: bool = True):
@@ -339,4 +340,14 @@ class AccessList(commands.Cog):
     async def msg_success(self, inter, message):
         await inter.followup.send(
             f':white_check_mark: {message}'
+        )
+
+    async def msg_warning(self, inter, message):
+        await inter.followup.send(
+            f':warning: {message}'
+        )
+
+    async def msg_info(self, inter, message):
+        await inter.followup.send(
+            f':information_source: {message}'
         )
