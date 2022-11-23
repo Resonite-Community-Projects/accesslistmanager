@@ -48,6 +48,7 @@ class AccessList(commands.Cog):
 
     @accesslist.sub_command(name='add', description='Adds a new users to the cloud variable')
     async def add(self, inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_discord_members)):
+        await inter.response.defer()
         self._log_action(inter, neos_username, 'add')
         if not neos_username.startswith('U-'):
             await inter.response.send_message("Please be sure to precise the 'U-' before the neos username!")
@@ -77,13 +78,11 @@ class AccessList(commands.Cog):
                 )
             )
             self.db_session.commit()
-            await self.update_channel(neos_username, discord_handle, discord_id, inter.user.id, f"{inter.user.name}#{inter.user.discriminator}", inter.guild.id)
-            await inter.response.send_message(
-                f'User {neos_username} added to the accesslist'
-            )
+            await self.msg_working(inter, f"Adding user {neos_username} to the accesslist...")
+            await self._update_channel(neos_username, discord_handle, discord_id, inter.user.id, f"{inter.user.name}#{inter.user.discriminator}", inter.guild.id)
+            await self.msg_success(inter, f"User {neos_username} added to the accesslist")
         else:
-            message = f'User {neos_username} already added to the accesstlist'
-            await inter.response.send_message(message)
+            await self.msg_success(inter, f"User {neos_username} already added to the accesslist")
 
     @accesslist.sub_command(
         name='remove',
@@ -225,6 +224,33 @@ class AccessList(commands.Cog):
                 )
             await inter.response.send_message(formated_text)
 
+    @accesslist.sub_command(name='resetlogs', description='Reset the log output channel and relog the content of the database')
+    async def resetlogs(self, inter, log: bool = True):
+        await inter.response.defer()
+        await self.msg_working(inter, "Reset in progress... please be patient...")
+        channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=inter.guild.id, name="output")
+        async for msg in channel.history(limit=1000):
+            if msg.author.id == self.bot.application_id:
+                await msg.delete()
+                await asyncio.sleep(1.2)
+        users = self.db_session.query(User).all()
+        for user in users:
+            try:
+                neos_user = self.neos_client.getUserData(user.neos_username)
+                neos_username = neos_user.username
+            except Exception:
+                am_logger.error(traceback.format_exc())
+                neos_username = "<??>"
+            discord_user = self.bot.get_user(int(user.discord_id))
+            verifier_user = self.bot.get_user(int(user.verifier))
+            if log:
+                await channel.send(self._log_format(
+                    neos_username, user.neos_username, f"{discord_user.name}#{discord_user.discriminator}",
+                    user.discord_id, user.verifier, f"{verifier_user.name}#{verifier_user.discriminator}")
+                )
+            time.sleep(1)
+        await self.msg_success(inter, "Reset done!")
+
     def _user_exist(self, username):
         if username.startswith('U-'):
             neos_users = self.db_session.query(User).filter(User.neos_username == username)
@@ -273,55 +299,44 @@ class AccessList(commands.Cog):
                 message = "Error when setting the cloud variable, check the logs"
             raise ValueError(message)
 
-    #@accesslist.sub_command(name='test', description='test Adds a new users to the cloud variable')
-    #async def test(self, inter, neos_username: str, discord_username: str = commands.Param(autocomplete=autocomp_discord_members)):
-    #    await self.update_channel(neos_username, discord_username, inter.user.id, inter.guild.id)
+    def _log_format(self, neos_username, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle, guild_id=None, msg_history=None):
+        line = f"User Discord: <@{discord_id}> ({discord_handle}) | User NeosVR: {neos_user_id} ({neos_username}) | Verifier Discord: <@{verified_id}> ({verified_discord_handle})"
+        if msg_history:
+            for msg in msg_history:
+                if msg.author.id == self.bot.application_id and msg.content == line:
+                    am_logger.info(f"{neos_user_id} already logged.")
+                    return ''
+            return line
+        else:
+            return line
 
-    @accesslist.sub_command(name='resetlogs', description='Reset the log output channel and relog the content of the database')
-    async def resetlogs(self, inter, log: bool = True):
-        await inter.response.send_message("Reset in progress... please be patient...")
-        await self.reset_channel(inter.guild.id, log)
-
-    def log_format(self, neos_username, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle):
-        return f"User Discord: <@{discord_id}> ({discord_handle}) | User NeosVR: {neos_user_id} ({neos_username}) | Verifier Discord: <@{verified_id}> ({verified_discord_handle})"
-
-    async def reset_channel(self, guild_id, log):
-        channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name="output")
-        async for msg in channel.history(limit=1000):
-            if msg.author.id == self.bot.application_id:
-                await msg.delete()
-                await asyncio.sleep(1.2)
-        users = self.db_session.query(User).all()
-        _users = []
-        for x in range(600):
-            _users.append(users[0])
-        users = _users
-        for user in users:
-            try:
-                neos_user = self.neos_client.getUserData(user.neos_username)
-                neos_username = neos_user.username
-            except Exception as exc:
-                am_logger.error(traceback.format_exc())
-                neos_username = "<??>"
-            discord_user = self.bot.get_user(int(user.discord_id))
-            verifier_user = self.bot.get_user(int(user.verifier))
-            channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name="output")
-            if log:
-                await channel.send(self.log_format(
-                    neos_username, user.neos_username, f"{discord_user.name}#{discord_user.discriminator}",
-                    user.discord_id, user.verifier, f"{verifier_user.name}#{verifier_user.discriminator}")
-                )
-            time.sleep(1)
-        print("Clean done")
-
-    async def update_channel(self, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle, guild_id):
+    async def _update_channel(self, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle, guild_id):
         channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name="output")
 
         try:
             neos_user = self.neos_client.getUserData(neos_user_id)
             neos_username = neos_user.username
-        except Exception as exc:
+        except Exception:
             am_logger.error(traceback.format_exc())
             neos_username = "<??>"
 
-        await channel.send(self.log_format(neos_username, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle))
+        msg_history = await channel.history(limit=1000).flatten()
+
+        log = self._log_format(neos_username, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle, guild_id, msg_history)
+        if log:
+            await channel.send(log)
+
+    async def msg_working(self, inter, message):
+        await inter.followup.send(
+            f':arrows_counterclockwise: {message}'
+        )
+
+    async def msg_error(self, inter, message):
+        await inter.followup.send(
+            f':fire: {message}'
+        )
+
+    async def msg_success(self, inter, message):
+        await inter.followup.send(
+            f':white_check_mark: {message}'
+        )
