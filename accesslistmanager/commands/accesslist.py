@@ -7,7 +7,7 @@ from disnake.ext import commands
 from neos.classes import LoginDetails
 from neos.exceptions import InvalidToken, NeosAPIException
 
-from accesslistmanager.config import NEOS_PASSWORD, NEOS_USERNAME, NEOS_VAR_GROUP, NEOS_VAR_PATH
+from accesslistmanager.config import NEOS_PASSWORD, NEOS_USERNAME, NEOS_VAR_GROUP, NEOS_VAR_PATH, DISCORD_LOG_OUTPUT_CHANNEL
 from accesslistmanager.logger import am_logger, usage_logger
 from accesslistmanager.models import Session, User
 from accesslistmanager.utils import login
@@ -79,7 +79,10 @@ class AccessList(commands.Cog):
             )
             self.db_session.commit()
             await self.msg_working(inter, f"Adding user {neos_username} to the accesslist...")
-            await self._update_channel(neos_username, discord_handle, discord_id, inter.user.id, f"{inter.user.name}#{inter.user.discriminator}", inter.guild.id)
+            if DISCORD_LOG_OUTPUT_CHANNEL:
+                await self._update_channel(neos_username, discord_handle, discord_id, inter.user.id, f"{inter.user.name}#{inter.user.discriminator}", inter.guild.id)
+            else:
+                am_logger.info('No output channel configured, ignoring channel log update.')
             await self.msg_success(inter, f"User {neos_username} added to the accesslist")
         else:
             await self.msg_info(inter, f"User {neos_username} already added to the accesslist")
@@ -228,8 +231,11 @@ class AccessList(commands.Cog):
     @accesslist.sub_command(name='resetlogs', description='Reset the log output channel and relog the content of the database')
     async def resetlogs(self, inter, log: bool = True):
         await inter.response.defer()
+        if not DISCORD_LOG_OUTPUT_CHANNEL:
+            await self.msg_warning(inter, "Cant reset! Channel not setup!")
+            return
         await self.msg_working(inter, "Reset in progress... please be patient...")
-        channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=inter.guild.id, name="output")
+        channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=inter.guild.id, name=DISCORD_LOG_OUTPUT_CHANNEL)
         async for msg in channel.history(limit=1000):
             if msg.author.id == self.bot.application_id:
                 await msg.delete()
@@ -312,7 +318,7 @@ class AccessList(commands.Cog):
             return line
 
     async def _update_channel(self, neos_user_id, discord_handle, discord_id, verified_id, verified_discord_handle, guild_id):
-        channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name="output")
+        channel = disnake.utils.get(self.bot.get_all_channels(), guild__id=guild_id, name=DISCORD_LOG_OUTPUT_CHANNEL)
 
         try:
             neos_user = self.neos_client.getUserData(neos_user_id)
