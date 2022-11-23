@@ -181,11 +181,12 @@ class AccessList(commands.Cog):
             await self.msg_info(inter, formated_text)
         else:
             guild_members = inter.guild.members
+            username_name = username
             if '#' in username:
                 for member in guild_members:
                     if f"{member.name}#{member.discriminator}" == username:
-                        username_name = username
                         username = str(member.id)
+                        username_name = f"<@{username}> ({member.name}#{member.discriminator})"
             elif username.startswith('@'):
                 username = username.replace('@', '', 1)
                 for member in guild_members:
@@ -201,6 +202,7 @@ class AccessList(commands.Cog):
                     neos_user = self.db_session.query(User).filter(User.discord_id == username)[0]
                     username = neos_user.neos_username
                 for member in guild_members:
+                    neos_discord_username = "<??>"
                     if str(member.id) == neos_user.discord_id:
                         neos_discord_username = f"{member.name}#{member.discriminator}"
                     if str(member.id) == neos_user.verifier:
@@ -223,7 +225,7 @@ class AccessList(commands.Cog):
                     formated_text += '\n**WARNING**: Cloud variable set to true but user is not in the database!'
             else:
                 formated_text = (
-                    f"No discord user found for {username}.\n"
+                    f"No discord user found for {username_name}.\n"
                     "Use directly the U- user to directly check the value of the cloud variable."
                 )
             await self.msg_info(inter, formated_text)
@@ -240,22 +242,31 @@ class AccessList(commands.Cog):
             if msg.author.id == self.bot.application_id:
                 await msg.delete()
                 await asyncio.sleep(1.2)
-        users = self.db_session.query(User).all()
-        for user in users:
-            try:
-                neos_user = self.neos_client.getUserData(user.neos_username)
-                neos_username = neos_user.username
-            except Exception:
-                am_logger.error(traceback.format_exc())
-                neos_username = "<??>"
-            discord_user = self.bot.get_user(int(user.discord_id))
-            verifier_user = self.bot.get_user(int(user.verifier))
-            if log:
+        if log:
+            users = self.db_session.query(User).all()
+            for user in users:
+                try:
+                    neos_user = self.neos_client.getUserData(user.neos_username)
+                    neos_username = neos_user.username
+                except Exception:
+                    am_logger.error(traceback.format_exc())
+                    neos_username = "<??>"
+                discord_user = self.bot.get_user(int(user.discord_id))
+                if discord_user:
+                    discord_handle = f"{discord_user_name}#{discord_user_discriminator}"
+                else:
+                    discord_handle = user.discord_id
+                verifier_user = self.bot.get_user(int(user.verifier))
+                if verifier_user:
+                    verifier_handle = f"{verifier_user.name}#{verifier_user.discriminator}"
+                else:
+                    verifier_handle = user.verifier
+
                 await channel.send(self._log_format(
-                    neos_username, user.neos_username, f"{discord_user.name}#{discord_user.discriminator}",
-                    user.discord_id, user.verifier, f"{verifier_user.name}#{verifier_user.discriminator}")
+                    neos_username, user.neos_username, discord_handle,
+                    user.discord_id, user.verifier, verifier_handle)
                 )
-            time.sleep(1)
+                time.sleep(1)
         await self.msg_success(inter, "Reset done!")
 
     def _user_exist(self, username):
