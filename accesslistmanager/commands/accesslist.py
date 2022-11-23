@@ -253,7 +253,7 @@ class AccessList(commands.Cog):
                     neos_username = "<??>"
                 discord_user = self.bot.get_user(int(user.discord_id))
                 if discord_user:
-                    discord_handle = f"{discord_user_name}#{discord_user_discriminator}"
+                    discord_handle = f"{discord_user.name}#{discord_user.discriminator}"
                 else:
                     discord_handle = user.discord_id
                 verifier_user = self.bot.get_user(int(user.verifier))
