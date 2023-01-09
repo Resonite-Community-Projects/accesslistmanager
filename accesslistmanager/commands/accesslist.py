@@ -57,10 +57,17 @@ class AccessList(commands.Cog):
             await self.msg_warning(inter, "The discord username must be either a discord name + discrininator or an id starting with `@`")
             return
         guild_members = inter.guild.members
+        discord_id = None
         for member in guild_members:
             if discord_username == f"{member.name}#{member.discriminator}" or discord_username.replace('@', '') == str(member.id):
                 discord_id = str(member.id)
                 discord_handle = f"{member.name}#{member.discriminator}"
+        if not discord_id:
+            await self.msg_error(
+                inter,
+                f"No discord id has been found for {str(member.id)}. Tip: Don't copy past the discord + username but let discord slash comand help you fill the field. For example you could have space by mistake before the `#` sign.",
+            )
+            return
         neos_username = neos_username.replace(' ', '-') # Automaticly replace all space for dash like neos
         if not self._user_exist(neos_username):
             try:
