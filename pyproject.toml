@@ -9,7 +9,7 @@ readme = "README.md"
 python = ">=3.8"
 disnake = "^2.6.0"
 SQLAlchemy = "^1.4.41"
-neos-py = {git = "https://github.com/brodokk/neos.py", rev = "5405954e1f485ecb84ba1b342cc284c95a9d92f8"}
+neosvrpy = {git = "https://github.com/brodokk/neos.py", rev = "255511d56554805da68adeedecec82e30534fe30"}
 
 [tool.poetry.scripts]
 accesslistmanager = "accesslistmanager.main:main"
