@@ -8,8 +8,8 @@ import traceback
 from datetime import datetime
 
 import disnake
-from neos.client import Client
-from neos.exceptions import InvalidToken, NeosAPIException
+from neosvrpy.client import Client
+from neosvrpy.exceptions import InvalidToken, NeosAPIException
 
 from accesslistmanager.config import DISCORD_BOT_TOKEN
 from accesslistmanager.logger import am_logger, usage_logger

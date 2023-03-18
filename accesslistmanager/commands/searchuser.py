@@ -1,6 +1,6 @@
 from disnake.ext import commands
 
-from neos.exceptions import InvalidToken
+from neosvrpy.exceptions import InvalidToken
 
 from accesslistmanager.utils import login
 

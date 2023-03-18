@@ -3,8 +3,8 @@ import signal
 import sys
 import json
 from pathlib import Path
-from neos.client import Client
-from neos.classes import LoginDetails
+from neosvrpy.client import Client
+from neosvrpy.classes import LoginDetails
 
 from config import (
     DISCORD_BOT_TOKEN,

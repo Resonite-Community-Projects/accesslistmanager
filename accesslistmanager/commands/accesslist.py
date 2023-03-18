@@ -4,8 +4,8 @@ import time
 
 import disnake
 from disnake.ext import commands
-from neos.classes import LoginDetails
-from neos.exceptions import InvalidToken, NeosAPIException
+from neosvrpy.classes import LoginDetails
+from neosvrpy.exceptions import InvalidToken, NeosAPIException
 
 from accesslistmanager.config import NEOS_PASSWORD, NEOS_USERNAME, NEOS_VAR_GROUP, NEOS_VAR_PATH, DISCORD_LOG_OUTPUT_CHANNEL
 from accesslistmanager.logger import am_logger, usage_logger

@@ -1,4 +1,4 @@
-from neos.classes import LoginDetails
+from neosvrpy.classes import LoginDetails
 
 from accesslistmanager.config import (
     NEOS_USERNAME, NEOS_PASSWORD,
