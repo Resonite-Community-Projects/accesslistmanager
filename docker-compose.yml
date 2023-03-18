@@ -7,3 +7,4 @@ services:
       - "./accesslistmanager/config.py:/app/accesslistmanager/config.py"
       - "./accesslist.db:/app/accesslist.db"
       - "./access_manager.log:/app/access_manager.log"
+      - "./sendmessage_templates:/app/sendmessage_templates"

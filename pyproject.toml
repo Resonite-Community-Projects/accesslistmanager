@@ -2,7 +2,7 @@
 name = "accesslistmanager"
 version = "1.0"
 authors = ["brodokk <brodokk@brodokk.space>"]
-description = "A small example package"
+description = "Discord bot for managing NeosVR sessions access via cloud variable."
 readme = "README.md"
 
 [tool.poetry.dependencies]
