@@ -39,7 +39,7 @@ to the cloud variable `orion.userAccess`.
 
 ## Discord Usage
 
-When the bot is registered two slash commands become available. `accesslist` is the main command and is used to manage the NeosVR contact of the cloud variable. `usersearch` is a utility command that can be used to search for NeosVR Username in the objectif to use the NeosVR User Id for using afterward in the `accesslist` command.
+When the bot is registered two slash commands become available. `accesslist` is the main command and is used to manage the NeosVR contact of the cloud variable. `usersearch` is a utility command that can be used to search for NeosVR Username in the objectif to use the NeosVR User Id for using afterward in the `accesslist` command. You can also send messages to users based on a template.
 
 ### accesslist slash command
 
@@ -65,6 +65,10 @@ Here is the sub commands available:
 ### usersearch slash command
 
 This `usersearch` slash command give the possibility to lookup an NeosVR User Id via providing a NeosVR Username as a parameter.
+
+### smsg slash command
+
+This `smsg` slash command give the possibility to send a message from a template. For the moment templates can be only modified on a folder next to the bot. By default it's named `sendmessage_templates`
 
 ## Modularity
 
