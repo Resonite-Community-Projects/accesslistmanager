@@ -1,5 +1,9 @@
 # NeosVR Sessions CloudVariable AccessList Manager
 
+> [!WARNING]  
+> Depreciation notice for NeosVR, this project will be renamed and modified to support only Resonite.
+> Until the release a branch will be available for Resonite, the main branch will be for NeosVR until them.
+
 Discord bot for managing NeosVR sessions access via cloud variable.
 While its mainly developed for controlling a cloud variable for control a cloud variable
 it could be also used in other usage too.
