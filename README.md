@@ -80,3 +80,7 @@ You can add your own discord command as a module in the `commands` folder. You n
 at least create one Disnake Cog class and add it in the `__init__.py` file of the `commands` folder.
 By default the database sqlalchemy session and the neos client are passed as the second
 and third parameter. Check the class `commands.searchuser.SearchUser` as an example.
+
+## Database migration
+
+When updating the database schema a migration should be added with the commande `alembic revision --autogenerate -m "message"`.
