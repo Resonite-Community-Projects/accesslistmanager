@@ -25,10 +25,10 @@ async def autocomp_discord_members(inter: disnake.ApplicationCommandInteraction,
 
 class SendMessage(commands.Cog):
 
-    def __init__(self, bot, db_session, neos_client):
+    def __init__(self, bot, db_session, resonite_client):
         self.bot = bot
         self.db_session = db_session
-        self.neos_client = neos_client
+        self.resonite_client = resonite_client
 
     @commands.slash_command(name="smsg", description='Send a message to a Discord User')
     async def send_message(
