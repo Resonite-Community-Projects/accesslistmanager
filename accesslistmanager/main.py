@@ -20,7 +20,7 @@ from accesslistmanager import commands
 resonite_client = Client()
 db_session = Session()
 
-run_migrations('accesslistmanager/migrations', 'sqlite:///../accesslist.db')
+run_migrations('accesslistmanager/migrations', 'sqlite:///accesslist.db')
 
 login(resonite_client)
 
