@@ -6,7 +6,7 @@ description = "Discord bot for managing Resonite sessions access via cloud varia
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4"
+python = ">=3.10"
 disnake = "^2.6.0"
 SQLAlchemy = "^1.4.41"
 resonitepy = {git = "https://github.com/brodokk/resonitepy"}
